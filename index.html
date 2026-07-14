@@ -1,0 +1,2589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Damage Review Copilot: an evidence-first, human-controlled vehicle damage review workbench for claims agents.">
+  <title>Damage Review Copilot</title>
+  <style>
+    :root {
+      --canvas: #f5f6f8;
+      --surface: #ffffff;
+      --surface-subtle: #f8f9fb;
+      --ink: #1f2937;
+      --muted: #596579;
+      --divider: #d8dee6;
+      --control-border: #6b7280;
+      --accent: #2455c3;
+      --accent-dark: #183f99;
+      --accent-soft: #edf3ff;
+      --ai: #5d3c88;
+      --ai-soft: #f5f1fa;
+      --human: #176b4d;
+      --human-soft: #eaf6f0;
+      --warning: #8a4b08;
+      --warning-soft: #fff4df;
+      --danger: #a3322e;
+      --danger-soft: #fff0ef;
+      --shadow: 0 8px 24px rgba(31, 41, 55, .10);
+      --radius: 8px;
+      --header-height: 64px;
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: light; scroll-behavior: smooth; }
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+    img { display: block; max-width: 100%; }
+    [hidden] { display: none !important; }
+    a { color: var(--accent-dark); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 6px; font-size: clamp(22px, 2.5vw, 28px); line-height: 1.2; letter-spacing: -.02em; }
+    h2 { margin-bottom: 10px; font-size: 16px; line-height: 1.35; }
+    h3 { margin-bottom: 7px; font-size: 14px; line-height: 1.4; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0 0 0 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 500;
+      transform: translateY(-150%);
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 700;
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      min-height: var(--header-height);
+      border-bottom: 1px solid var(--divider);
+      background: rgba(255, 255, 255, .98);
+    }
+    .header-inner {
+      width: min(1280px, calc(100% - 40px));
+      min-height: var(--header-height);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .product-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .product-section { display: block; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .product-name { display: block; margin-top: -1px; font-size: 15px; font-weight: 760; letter-spacing: -.01em; }
+    .primary-nav { align-self: stretch; display: flex; }
+    .nav-button {
+      position: relative;
+      min-width: 74px;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .nav-button[aria-current="page"] { color: var(--accent-dark); }
+    .nav-button[aria-current="page"]::after {
+      content: "";
+      position: absolute;
+      right: 12px;
+      bottom: 0;
+      left: 12px;
+      height: 3px;
+      background: var(--accent);
+    }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+    .button {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      font-weight: 700;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .button:disabled { opacity: .48; cursor: not-allowed; }
+    .button-primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .button-primary:hover:not(:disabled) { border-color: var(--accent-dark); background: var(--accent-dark); }
+    .button-secondary { border-color: var(--control-border); background: #fff; color: #344154; }
+    .button-secondary:hover:not(:disabled) { background: var(--surface-subtle); }
+    .button-quiet { border-color: transparent; color: var(--accent-dark); }
+    .button-quiet:hover:not(:disabled) { background: var(--accent-soft); }
+    .button-danger { border-color: var(--danger); background: #fff; color: var(--danger); }
+    .button-danger:hover:not(:disabled) { background: var(--danger-soft); }
+    .button-urgent { border-color: var(--danger); background: var(--danger); color: #fff; }
+    .button-urgent:hover:not(:disabled) { border-color: #8c2925; background: #8c2925; }
+    .button-confirm { border-color: var(--human); background: var(--human); color: #fff; }
+    .button-confirm:hover:not(:disabled) { border-color: #115239; background: #115239; }
+    .button-small { min-height: 44px; padding: 7px 11px; font-size: 13px; }
+    .button-wide { width: 100%; }
+
+    .prototype-strip { border-bottom: 1px solid #ead3a5; background: #fff9ec; color: #62420a; }
+    .prototype-strip-inner {
+      width: min(1280px, calc(100% - 40px));
+      min-height: 38px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .prototype-strip details { position: relative; }
+    .prototype-strip summary { min-height: 44px; display: inline-flex; align-items: center; color: var(--accent-dark); font-weight: 700; cursor: pointer; }
+    .prototype-detail {
+      position: absolute;
+      top: 28px;
+      right: 0;
+      z-index: 100;
+      width: min(420px, calc(100vw - 32px));
+      padding: 14px;
+      border: 1px solid var(--divider);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+    .prototype-detail p:last-child { margin-bottom: 0; }
+
+    main { width: min(1280px, calc(100% - 40px)); margin: 0 auto; }
+    .screen { padding: 28px 0 52px; }
+    .page-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .page-kicker { margin: 0 0 4px; color: var(--accent-dark); font-size: 12px; font-weight: 750; }
+    .lede { max-width: 760px; margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .breadcrumb-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .muted { color: var(--muted); }
+    .metadata { color: var(--muted); font-size: 12px; }
+    .numeric { font-variant-numeric: tabular-nums; }
+
+    .panel {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 15px 17px;
+      border-bottom: 1px solid var(--divider);
+    }
+    .panel-header h2, .panel-header h3 { margin: 0; }
+    .panel-body { padding: 17px; }
+
+    .status-badge, .origin-label, .decision-badge, .count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 26px;
+      padding: 3px 8px;
+      border: 1px solid var(--divider);
+      border-radius: 999px;
+      background: var(--surface-subtle);
+      color: #465469;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    /* Colour semantics: red = your decision needed, blue = ready for you, amber = waiting on evidence, grey = not your action. */
+    .decision-confirmed, .decision-corrected { border-color: #9dcbb9; background: var(--human-soft); color: var(--human); }
+    .status-ready { border-color: #b8c9f2; background: var(--accent-soft); color: var(--accent-dark); }
+    .status-evaluating { border-color: #c3cddd; background: #f1f4f9; color: #4c5b73; }
+    .status-evaluating::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #7288a8; animation: status-pulse 1.4s ease-in-out infinite; }
+    @keyframes status-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+    .status-action { border-color: #dfa6a3; background: var(--danger-soft); color: var(--danger); }
+    .status-evidence { border-color: #e2c184; background: var(--warning-soft); color: var(--warning); }
+    .status-manual, .status-senior { border-color: #bfc8d4; background: #f1f3f6; color: #465469; }
+    .decision-rejected { border-color: #dfa6a3; background: var(--danger-soft); color: var(--danger); }
+    .origin-ai { border-color: #c7b5d8; background: var(--ai-soft); color: var(--ai); }
+    .origin-human { border-color: #9dcbb9; background: var(--human-soft); color: var(--human); }
+    .decision-pending { border-color: #c7b5d8; background: var(--ai-soft); color: var(--ai); }
+
+    .update-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding: 11px 13px;
+      border: 1px solid #b8c9f2;
+      border-radius: 7px;
+      background: var(--accent-soft);
+      color: #243d78;
+    }
+    .update-notice p { margin: 0; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .summary-tile {
+      min-height: 110px;
+      padding: 14px;
+      border: 1px solid var(--divider);
+      border-top: 3px solid var(--divider);
+      border-radius: var(--radius);
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+    .summary-tile:hover, .summary-tile[aria-pressed="true"] { box-shadow: 0 0 0 2px rgba(36, 85, 195, .18); }
+    .tile-urgent { border-top-color: var(--danger); }
+    .tile-urgent strong { color: var(--danger); }
+    .tile-ready { border-top-color: var(--accent); }
+    .tile-ready strong { color: var(--accent-dark); }
+    .tile-progress { border-top-color: #8fa1bb; }
+    .tile-routed { border-top-color: #bfc8d4; }
+    .summary-tile span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .summary-tile strong { display: block; margin: 3px 0; font-size: 25px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .summary-tile small { display: block; color: var(--muted); font-size: 12px; }
+
+    .queue-panel { overflow: hidden; }
+    .queue-toolbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(180px, .55fr) minmax(220px, .65fr);
+      gap: 12px;
+      padding: 15px 17px;
+      border-bottom: 1px solid var(--divider);
+      background: var(--surface-subtle);
+    }
+    .field { display: grid; gap: 5px; }
+    .field-label { color: #364256; font-size: 12px; font-weight: 700; }
+    .field-hint { color: var(--muted); font-size: 12px; }
+    .input, .select, .textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 9px 11px;
+      border: 1px solid var(--control-border);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+    }
+    .textarea { min-height: 88px; resize: vertical; }
+    .input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--danger); }
+    .validation-error { margin: 0; color: var(--danger); font-size: 12px; font-weight: 700; }
+
+    .queue-context {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 17px;
+      border-bottom: 1px solid var(--divider);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .queue-table-wrap { overflow-x: auto; }
+    .queue-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .queue-table th {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--divider);
+      background: #fff;
+      color: #4c586a;
+      font-size: 12px;
+      font-weight: 750;
+      text-align: left;
+    }
+    .queue-table td { padding: 13px 12px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
+    .queue-table tbody tr:hover { background: #fafbfc; }
+    .queue-table tbody tr.is-new { background: #f4f7ff; }
+    .queue-table tbody tr.row-action td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+    .queue-table tbody tr.row-ready td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+    .dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: 1px; }
+    .dot-good { background: #1d8a5f; }
+    .dot-warn { background: #c07c10; }
+    .dot-bad { background: #b8423d; }
+    .dot-neutral { background: #9aa6b5; }
+    .age-chip { display: inline-flex; margin-top: 3px; padding: 1px 8px; border-radius: 999px; background: #f1f3f6; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .queue-table th:nth-child(1) { width: 24%; }
+    .queue-table th:nth-child(2) { width: 13%; }
+    .queue-table th:nth-child(3) { width: 12%; }
+    .queue-table th:nth-child(4) { width: 12%; }
+    .queue-table th:nth-child(5) { width: 14%; }
+    .queue-table th:nth-child(6) { width: 13%; }
+    .queue-table th:nth-child(7) { width: 12%; }
+    .claim-primary { display: block; font-weight: 780; font-variant-numeric: tabular-nums; }
+    .claim-secondary { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+    .cell-label { display: block; color: #344154; font-weight: 680; }
+    .cell-note { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .queue-empty { padding: 44px 20px; text-align: center; }
+
+    .intake-layout { display: grid; grid-template-columns: minmax(0, .8fr) minmax(400px, 1.2fr); gap: 16px; align-items: start; }
+    .record-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .field-wide { grid-column: 1 / -1; }
+    .intake-record { margin: 0 0 15px; }
+    .market-metadata { min-height: 44px; display: flex; align-items: center; padding: 9px 11px; border: 1px solid var(--divider); border-radius: 6px; background: var(--surface-subtle); color: #465469; }
+    .scope-note, .inline-note {
+      margin: 15px 0 0;
+      padding: 11px 12px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      color: #31436f;
+      font-size: 13px;
+    }
+    .drop-zone {
+      min-height: 196px;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      border: 2px dashed var(--control-border);
+      border-radius: 7px;
+      background: var(--surface-subtle);
+      text-align: center;
+    }
+    .drop-zone.is-dragging { border-color: var(--accent); background: var(--accent-soft); }
+    .upload-mark { margin-bottom: 8px; color: var(--accent); font-size: 24px; font-weight: 800; }
+    .drop-title { margin-bottom: 3px; font-weight: 750; }
+    .drop-copy { margin-bottom: 12px; color: var(--muted); font-size: 12px; }
+    .preview { width: 100%; overflow: hidden; border: 1px solid var(--divider); border-radius: 7px; background: #e2e6eb; }
+    .preview img { width: 100%; height: 240px; object-fit: cover; }
+    .preview.is-poor img { filter: blur(8px) brightness(.35); transform: scale(1.04); }
+    .preview-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; background: #fff; text-align: left; }
+    .preview-name { min-width: 0; overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .demo-controls { margin-top: 14px; border-top: 1px solid var(--divider); }
+    .demo-controls summary { min-height: 44px; display: flex; align-items: center; color: var(--accent-dark); font-weight: 700; cursor: pointer; }
+    .demo-controls-body { padding: 4px 0 10px; }
+    .sample-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .sample-button {
+      min-height: 66px;
+      padding: 10px;
+      border: 1px solid var(--control-border);
+      border-radius: 6px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+    .sample-button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px rgba(36, 85, 195, .10); }
+    .sample-button strong { display: block; }
+    .sample-button span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .intake-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; }
+    .gate-copy { margin: 0; color: var(--muted); font-size: 12px; }
+
+    .action-layout { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
+    .action-image { overflow: hidden; }
+    .action-image img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .action-image img.is-poor { filter: blur(8px) brightness(.38); transform: scale(1.04); }
+    .image-missing { min-height: 280px; display: grid; place-items: center; padding: 24px; background: #e4e8ed; color: var(--muted); text-align: center; }
+    .warning-panel { border-color: #d9b36f; }
+    .warning-panel .panel-header { background: var(--warning-soft); color: #65400a; }
+    .needed-list { margin: 12px 0 0; padding-left: 20px; }
+    .needed-list li + li { margin-top: 5px; }
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+
+    .review-layout { display: grid; grid-template-columns: minmax(340px, .75fr) minmax(0, 1.25fr); gap: 16px; align-items: start; }
+    .evidence-pane { position: sticky; top: 86px; display: grid; gap: 12px; }
+    .record-list { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    .record-list div:last-child { grid-column: 1 / -1; }
+    .record-list dt { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .record-list dd { margin: 2px 0 0; color: #344154; overflow-wrap: anywhere; }
+    .evidence-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 10px; border-bottom: 1px solid var(--divider); }
+    .tool-group { display: flex; align-items: center; gap: 6px; }
+    .icon-button { width: 44px; height: 44px; padding: 0; border: 1px solid var(--control-border); border-radius: 6px; background: #fff; font-weight: 800; cursor: pointer; }
+    .overlay-toggle[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); color: var(--ai); }
+    .evidence-frame { position: relative; overflow: auto; min-height: 300px; max-height: 70vh; background: #dfe4e9; }
+    .image-stage { position: relative; transform: scale(1); transform-origin: top left; transition: transform .15s ease; }
+    .image-stage img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .region-box {
+      position: absolute;
+      top: 38%;
+      left: 43%;
+      width: 44%;
+      height: 31%;
+      border: 3px solid #e5b700;
+      outline: 2px solid #2d2600;
+      outline-offset: 1px;
+      border-radius: 4px;
+      box-shadow: 0 0 0 999px rgba(31, 41, 55, .16);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .region-box.is-visible { opacity: 1; }
+    .region-label { position: absolute; top: -28px; left: -3px; padding: 3px 6px; border-radius: 3px; background: #e5b700; color: #2d2600; font-size: 12px; font-weight: 800; }
+    .evidence-description { margin: 0; padding: 11px 12px; border-top: 1px solid var(--divider); color: var(--muted); font-size: 12px; }
+    .fixture-note { margin: 0; padding: 10px 12px; border-left: 3px solid var(--warning); background: var(--warning-soft); color: #62420a; font-size: 12px; }
+
+    .review-workspace { min-width: 0; display: grid; gap: 12px; }
+    .evidence-gate { padding: 20px; }
+    .gate-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .gate-option {
+      min-height: 96px;
+      padding: 12px;
+      border: 1px solid var(--control-border);
+      border-radius: 7px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+    .gate-option strong { display: block; margin-bottom: 4px; }
+    .gate-option span { display: block; color: var(--muted); font-size: 12px; }
+    .gate-option.primary { border-color: var(--accent); background: var(--accent-soft); }
+    .gate-option.danger { border-color: var(--danger); }
+
+    .guided-review { display: grid; gap: 12px; }
+    .review-progress { padding: 13px 15px; }
+    .progress-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .progress-top strong { font-size: 14px; }
+    .progress-top span { color: var(--muted); font-size: 12px; }
+    .progress-track { height: 8px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: #e4e8ed; }
+    .progress-fill { height: 100%; width: 0; background: var(--human); transition: width .2s ease; }
+    .progress-rail { display: flex; gap: 7px; margin-top: 12px; overflow-x: auto; padding-bottom: 2px; }
+    .progress-step {
+      min-width: 150px;
+      min-height: 52px;
+      padding: 7px 9px;
+      border: 1px solid var(--divider);
+      border-radius: 6px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+    .progress-step[aria-current="step"] { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(36, 85, 195, .10); }
+    .progress-step strong { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .progress-step span { display: block; margin-top: 1px; color: var(--muted); font-size: 12px; }
+    .progress-step .step-state.confirmed, .progress-step .step-state.corrected { color: var(--human); font-weight: 700; }
+    .progress-step .step-state.rejected { color: var(--danger); font-weight: 700; }
+
+    .finding-panel { overflow: hidden; }
+    .finding-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 15px 17px; border-bottom: 1px solid var(--divider); }
+    .finding-header h2 { margin: 6px 0 2px; font-size: 18px; }
+    .finding-header p { margin-bottom: 0; color: #465469; }
+    .finding-body { padding: 17px; }
+    .finding-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
+    .finding-details div { min-width: 0; }
+    .finding-details dt { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .finding-details dd { margin: 2px 0 0; color: #344154; font-weight: 650; overflow-wrap: anywhere; }
+    .source-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 14px; }
+    .source-row > span { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .source-button {
+      min-height: 44px;
+      padding: 7px 10px;
+      border: 1px solid #4d8278;
+      border-radius: 6px;
+      background: #fff;
+      color: #145f55;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .cost-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; padding: 11px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); background: #f7faf9; }
+    .cost-strip span { display: block; color: var(--muted); font-size: 12px; }
+    .cost-strip strong { display: block; margin-top: 2px; color: #185e58; font-variant-numeric: tabular-nums; }
+    .finding-limitation { margin: 13px 0 0; padding: 10px 11px; border-left: 3px solid var(--warning); background: var(--warning-soft); color: #62420a; font-size: 12px; }
+    .decision-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 15px; }
+    .decision-actions .button { width: 100%; }
+    .resolved-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding: 11px; background: var(--human-soft); }
+    .resolved-actions p { margin: 0; color: #245f49; }
+
+    .inline-editor { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider); }
+    .editor-intro { margin-bottom: 13px; color: var(--muted); font-size: 12px; }
+    .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .before-after { margin: 12px 0; padding: 10px 11px; border: 1px solid #c7b5d8; border-radius: 6px; background: var(--ai-soft); color: #523d69; font-size: 12px; }
+    .before-after strong { color: var(--ai); }
+
+    .sequential-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sequential-nav-group { display: flex; gap: 8px; }
+
+    .estimate-panel { border-left: 4px solid #28776c; }
+    .estimate-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .estimate-value { padding: 11px; border-right: 1px solid var(--divider); }
+    .estimate-value:last-child { border-right: 0; }
+    .estimate-value span { display: block; color: var(--muted); font-size: 12px; }
+    .estimate-value strong { display: block; margin-top: 2px; color: #185e58; font-size: 20px; font-variant-numeric: tabular-nums; }
+    .estimate-value small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .estimate-footnote { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+    .limits-panel { border-left: 4px solid var(--warning); background: #fffaf1; }
+    .limits-panel p { margin-bottom: 0; color: #62420a; }
+    .activity-panel summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 15px; font-weight: 700; cursor: pointer; }
+    .activity-list { margin: 0; padding: 0 17px 15px 34px; }
+    .activity-list li + li { margin-top: 8px; }
+    .activity-list span { display: block; color: var(--muted); font-size: 12px; }
+    .review-action-bar {
+      position: sticky;
+      bottom: 12px;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--control-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .98);
+      box-shadow: var(--shadow);
+    }
+    .review-action-copy strong { display: block; }
+    .review-action-copy span { display: block; margin-top: 1px; color: var(--muted); font-size: 12px; }
+    .review-action-buttons { display: flex; gap: 7px; }
+
+    .handoff-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 16px; align-items: start; }
+    .packet-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+    .packet-stat { padding: 11px; border: 1px solid var(--divider); border-radius: 6px; }
+    .packet-stat span { display: block; color: var(--muted); font-size: 12px; }
+    .packet-stat strong { display: block; margin-top: 2px; font-size: 20px; }
+    .packet-findings { margin: 0; padding: 0; list-style: none; }
+    .packet-finding { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid var(--divider); }
+    .packet-finding:first-child { border-top: 0; }
+    .packet-finding p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .packet-estimate { padding: 16px; border-left: 4px solid var(--human); }
+    .packet-estimate strong { display: block; color: var(--human); font-size: 28px; font-variant-numeric: tabular-nums; }
+    .packet-estimate span { display: block; color: var(--muted); font-size: 12px; }
+    .packet-actions { display: grid; gap: 8px; margin-top: 14px; }
+
+    .outcome-panel { max-width: 820px; margin: 0 auto; }
+    .outcome-banner { padding: 18px; border-bottom: 1px solid var(--divider); }
+    .outcome-banner.success { background: var(--human-soft); color: #245f49; }
+    .outcome-banner.warning { background: var(--warning-soft); color: #62420a; }
+    .outcome-banner.neutral { background: #f1f3f6; color: #465469; }
+    .outcome-banner h2 { margin-bottom: 5px; }
+    .outcome-banner p { margin-bottom: 0; }
+    .outcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+    .outcome-grid div { padding: 10px; border: 1px solid var(--divider); border-radius: 6px; }
+    .outcome-grid dt { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .outcome-grid dd { margin: 2px 0 0; font-weight: 650; }
+    .outcome-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+    dialog {
+      width: min(600px, calc(100% - 32px));
+      max-height: calc(100vh - 32px);
+      padding: 0;
+      overflow: auto;
+      border: 1px solid var(--divider);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+    dialog::backdrop { background: rgba(20, 28, 40, .55); }
+    .drawer { width: min(560px, calc(100% - 24px)); height: calc(100vh - 24px); max-height: none; margin: 12px 12px 12px auto; border-radius: 10px 0 0 10px; }
+    .dialog-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 17px; border-bottom: 1px solid var(--divider); background: #fff; }
+    .dialog-header h2 { margin: 0; }
+    .dialog-close { width: 44px; height: 44px; padding: 0; border: 1px solid var(--control-border); border-radius: 6px; background: #fff; cursor: pointer; }
+    .dialog-body { padding: 17px; }
+    .dialog-body .field + .field { margin-top: 12px; }
+    .dialog-actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 13px 17px; border-top: 1px solid var(--divider); background: var(--surface-subtle); }
+    .checkbox-list { display: grid; gap: 8px; }
+    .checkbox-row { min-height: 44px; display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; padding: 8px; border: 1px solid var(--divider); border-radius: 6px; }
+    .checkbox-row input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+    .source-excerpt { margin: 12px 0; padding: 12px; border-left: 3px solid #28776c; background: #eef8f5; color: #315f58; }
+
+    .toast { position: fixed; right: 16px; bottom: 16px; z-index: 220; max-width: 390px; margin: 0; padding: 11px 13px; border: 1px solid #9dcbb9; border-radius: 7px; background: var(--human-soft); color: #245f49; box-shadow: var(--shadow); font-weight: 700; }
+    .footer { padding: 20px; border-top: 1px solid var(--divider); background: #fff; color: var(--muted); text-align: center; font-size: 12px; }
+    .footer a { font-weight: 700; }
+
+    @media (max-width: 1020px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .intake-layout, .action-layout, .review-layout, .handoff-layout { grid-template-columns: 1fr; }
+      .evidence-pane { position: static; grid-template-columns: 1fr 1fr; }
+      .evidence-pane > :not(.panel) { grid-column: 1 / -1; }
+      .review-action-bar { position: static; }
+    }
+
+    @media (max-width: 760px) {
+      .header-inner, .prototype-strip-inner, main { width: min(100% - 24px, 1280px); }
+      .header-inner { gap: 10px; }
+      .product-section, .nav-button, #reset-demo span:last-child { display: none; }
+      .prototype-strip-inner { flex-wrap: wrap; padding: 8px 0; }
+      .prototype-strip-inner > span { flex: 1 1 190px; }
+      .prototype-strip details { flex: 1 0 100%; }
+      .prototype-detail { position: static; width: 100%; margin: 7px 0 2px; }
+      .header-actions { gap: 5px; }
+      #reset-demo { width: 44px; padding: 0; }
+      .screen { padding: 22px 0 38px; }
+      .page-heading { align-items: stretch; flex-direction: column; gap: 12px; }
+      .queue-toolbar, .record-grid, .sample-grid, .editor-grid, .outcome-grid { grid-template-columns: 1fr; }
+      .field-wide { grid-column: auto; }
+      .queue-context { align-items: flex-start; flex-direction: column; }
+      .queue-table thead { display: none; }
+      .queue-table, .queue-table tbody, .queue-table tr, .queue-table td { display: block; width: 100%; }
+      .queue-table tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; padding: 12px; border-bottom: 1px solid var(--divider); }
+      .queue-table td { display: grid; grid-template-columns: minmax(90px, .42fr) 1fr; gap: 8px; padding: 7px 0; border: 0; }
+      .queue-table td::before { content: attr(data-label); color: var(--muted); font-size: 12px; font-weight: 700; }
+      .queue-table td:first-child, .queue-table td:last-child { grid-column: 1 / -1; }
+      .queue-table td:first-child { display: block; padding-bottom: 10px; border-bottom: 1px solid var(--divider); }
+      .queue-table td:first-child::before { display: none; }
+      .queue-table td:last-child { display: block; padding-top: 10px; }
+      .queue-table td:last-child::before { display: none; }
+      .queue-table td:last-child .button { width: 100%; }
+      .evidence-pane { grid-template-columns: 1fr; }
+      .gate-options, .decision-actions, .estimate-grid, .packet-stats { grid-template-columns: 1fr; }
+      .cost-strip { grid-template-columns: 1fr; }
+      .finding-details { grid-template-columns: 1fr; }
+      .sequential-nav, .review-action-bar { align-items: stretch; flex-direction: column; }
+      .sequential-nav-group, .review-action-buttons { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+      .review-action-buttons .button-primary { grid-column: 1 / -1; }
+      .estimate-value { border-right: 0; border-bottom: 1px solid var(--divider); }
+      .estimate-value:last-child { border-bottom: 0; }
+      .intake-actions { align-items: stretch; flex-direction: column; }
+      .intake-actions .button { width: 100%; }
+      .dialog-actions { flex-direction: column-reverse; }
+      .dialog-actions .button { width: 100%; }
+      .toast { right: 12px; bottom: 12px; left: 12px; max-width: none; }
+    }
+
+    @media (max-width: 430px) {
+      .product-name { font-size: 14px; }
+      #new-assessment span:last-child { display: none; }
+      #new-assessment { width: 44px; padding: 0; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .queue-table tbody tr { grid-template-columns: 1fr; }
+      .queue-table td { grid-column: 1 / -1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+
+    @media print {
+      .app-header, .prototype-strip, .footer, .button, dialog, .toast, .review-action-bar, .evidence-toolbar { display: none !important; }
+      body { background: #fff; }
+      main { width: 100%; }
+      .screen { padding: 0; }
+      .evidence-pane { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#app-main">Skip to main content</a>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <button class="product-lockup" id="product-home" type="button" aria-label="Open claims dashboard">
+        <span>
+          <span class="product-section">Claims Operations</span>
+          <span class="product-name">Damage Review Copilot</span>
+        </span>
+      </button>
+      <nav class="primary-nav" aria-label="Primary">
+        <button class="nav-button" id="claims-nav" type="button" aria-current="page">Claims</button>
+      </nav>
+      <div class="header-actions">
+        <button class="button button-quiet" id="reset-demo" type="button" aria-label="Reset demo data"><span aria-hidden="true">↺</span><span>Reset demo</span></button>
+        <button class="button button-primary" id="new-assessment" type="button" aria-label="Start new assessment"><span aria-hidden="true">+</span><span>New assessment</span></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="prototype-strip">
+    <div class="prototype-strip-inner">
+      <strong>Prototype · simulated assessment</strong>
+      <span>Human review and senior authorization are always required.</span>
+      <details>
+        <summary>What is simulated?</summary>
+        <div class="prototype-detail">
+          <p><strong>Simulated:</strong> media checks, eligibility, visible findings, repair mappings, pricing sources, and assessment completion.</p>
+          <p><strong>Functional:</strong> queue operations, uploads, background state, sequential review, corrections, source validation, routing, audit history, session recovery, senior handoff, and senior authorization / return.</p>
+          <p>No data leaves this browser tab. Custom uploads receive the same clearly labelled simulated assessment — the findings are demo fixtures, not an analysis of your file. Corrections remain session-only and are not used to train or update a model.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <main id="app-main" tabindex="-1">
+    <section class="screen" data-screen="queue" aria-labelledby="queue-title">
+      <div class="page-heading">
+        <div>
+          <p class="page-kicker">Claims dashboard</p>
+          <h1 id="queue-title" tabindex="-1">Claims evaluation queue</h1>
+          <p class="lede">Evaluations run in the background while you work. <strong style="color:var(--danger)">Red</strong> needs your decision now; <strong style="color:var(--accent-dark)">blue</strong> drafts are ready to review.</p>
+        </div>
+      </div>
+
+      <div class="update-notice" id="queue-update-notice" hidden>
+        <p><strong id="queue-update-count">1 evaluation has finished.</strong> Apply the update when you're ready — rows will reorder.</p>
+        <button class="button button-secondary button-small" id="apply-queue-updates" type="button">Apply update</button>
+      </div>
+
+      <div class="summary-grid" role="group" aria-label="Queue summary filters">
+        <button class="summary-tile tile-urgent" type="button" data-summary-filter="action-required" aria-pressed="false"><span>Action required</span><strong id="count-action">0</strong><small>Blocked until you decide</small></button>
+        <button class="summary-tile tile-ready" type="button" data-summary-filter="review-ready" aria-pressed="false"><span>Ready for review</span><strong id="count-ready">0</strong><small>Drafts waiting for you</small></button>
+        <button class="summary-tile tile-progress" type="button" data-summary-filter="evaluating" aria-pressed="false"><span>Evaluating</span><strong id="count-evaluating">0</strong><small>AI working — no action needed</small></button>
+        <button class="summary-tile tile-routed" type="button" data-summary-filter="routed" aria-pressed="false"><span>Routed</span><strong id="count-routed">0</strong><small>With policyholder or senior</small></button>
+      </div>
+
+      <section class="panel queue-panel" aria-labelledby="claims-table-title">
+        <h2 class="visually-hidden" id="claims-table-title">Claims</h2>
+        <div class="queue-toolbar">
+          <label class="field">
+            <span class="field-label">Search claims</span>
+            <input class="input" id="queue-search" type="search" placeholder="Claim, vehicle, policy, or incident">
+          </label>
+          <label class="field">
+            <span class="field-label">Status</span>
+            <select class="select" id="status-filter">
+              <option value="all">All statuses</option>
+              <option value="review-ready">Ready for review</option>
+              <option value="evaluating">Evaluating</option>
+              <option value="action-required">Action required</option>
+              <option value="needs-evidence">Needs evidence</option>
+              <option value="manual-review">Manual review</option>
+              <option value="senior-review">Senior review</option>
+              <option value="returned">Returned by senior</option>
+              <option value="authorized">Repairs authorized</option>
+              <option value="routed">All routed claims</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Sort by</span>
+            <select class="select" id="queue-sort">
+              <option value="submitted-asc">Oldest first</option>
+              <option value="submitted-desc">Newest first</option>
+              <option value="action-first">Needs my action first</option>
+              <option value="evidence-first">Weakest evidence first</option>
+              <option value="eligibility-first">Out-of-scope first</option>
+              <option value="estimate-desc">Highest estimate first</option>
+            </select>
+          </label>
+        </div>
+        <div class="queue-context">
+          <span id="sort-description"><strong>Oldest first</strong> shows the longest-waiting claims.</span>
+          <span id="queue-result-count" aria-live="polite">0 claims</span>
+        </div>
+        <div class="queue-table-wrap">
+          <table class="queue-table">
+            <thead>
+              <tr><th scope="col">Claim</th><th scope="col">Submitted / age</th><th scope="col">Evidence</th><th scope="col">Eligibility</th><th scope="col">Estimate</th><th scope="col">Status</th><th scope="col">Next action</th></tr>
+            </thead>
+            <tbody id="claims-list"></tbody>
+          </table>
+        </div>
+        <div class="queue-empty" id="queue-empty" hidden>
+          <h2>No claims match</h2>
+          <p class="muted">Change the search, filter, or summary selection.</p>
+        </div>
+      </section>
+    </section>
+
+    <section class="screen" data-screen="intake" aria-labelledby="intake-title" hidden>
+      <div class="breadcrumb-row"><button class="button button-quiet" type="button" data-back-to-queue>← Back to claims</button></div>
+      <div class="page-heading">
+        <div>
+          <p class="page-kicker">New claim intake</p>
+          <h1 id="intake-title" tabindex="-1">Start assessment</h1>
+          <p class="lede">Enter the policyholder's claim details and attach the damage image they provided.</p>
+        </div>
+      </div>
+
+      <form id="intake-form">
+        <div class="intake-layout">
+          <section class="panel" aria-labelledby="claim-record-title">
+            <header class="panel-header"><div><p class="page-kicker">Agent-entered intake</p><h2 id="claim-record-title">Claim details</h2></div><span class="origin-label">Not AI generated</span></header>
+            <div class="panel-body">
+              <div class="record-grid intake-record">
+                <label class="field"><span class="field-label">Claim reference</span><input class="input" id="claim-id" name="claim-reference" type="text" required autocomplete="off"></label>
+                <label class="field"><span class="field-label">Policy reference</span><input class="input" id="policy-id" name="policy-reference" type="text" required autocomplete="off"></label>
+                <label class="field field-wide"><span class="field-label">Vehicle</span><input class="input" id="vehicle" name="vehicle" type="text" required autocomplete="off"></label>
+                <label class="field field-wide"><span class="field-label">Incident summary</span><textarea class="textarea" id="incident" name="incident-summary" required aria-describedby="incident-hint"></textarea><span class="field-hint" id="incident-hint">Policyholder-reported context; not a verified fact.</span></label>
+                <div class="field field-wide"><span class="field-label">Pricing market</span><div class="market-metadata">Demo market · USD · Pricebook fixture v2026-Q2</div></div>
+              </div>
+              <label class="field"><span class="field-label">Optional agent note</span><textarea class="textarea" id="agent-note" placeholder="Add relevant context for the assessment"></textarea></label>
+              <p class="scope-note"><strong>Scope:</strong> minor exterior damage on supported passenger vehicles. Structural, safety-system, total-loss, disputed, and unsupported cases go to a person.</p>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="upload-title">
+            <header class="panel-header"><div><p class="page-kicker">Submitted evidence</p><h2 id="upload-title">Damage image</h2></div><span class="count-badge" id="evidence-count">No image</span></header>
+            <div class="panel-body">
+              <div class="drop-zone" id="drop-zone">
+                <div id="upload-empty">
+                  <div class="upload-mark" aria-hidden="true">↑</div>
+                  <p class="drop-title">Add one vehicle-damage image</p>
+                  <p class="drop-copy">JPEG, PNG, or WebP · maximum 8 MB</p>
+                  <button class="button button-secondary" id="browse-button" type="button">Browse files</button>
+                  <input id="damage-input" type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label="Choose damage image" aria-describedby="upload-error">
+                </div>
+                <div class="preview" id="upload-preview" hidden>
+                  <img id="preview-image" alt="Selected vehicle-damage evidence">
+                  <div class="preview-meta"><span class="preview-name" id="preview-name"></span><button class="button button-quiet button-small" id="remove-image" type="button">Remove image</button></div>
+                </div>
+              </div>
+              <p class="validation-error" id="upload-error" role="alert" hidden></p>
+              <p class="inline-note" id="custom-upload-note" hidden><strong>Custom upload:</strong> this file will receive a simulated AI response. Live inference isn't connected, so the findings are clearly labelled demo fixtures — not an analysis of your image.</p>
+
+              <details class="demo-controls">
+                <summary>Demo controls</summary>
+                <div class="demo-controls-body">
+                  <p class="metadata">Each sample produces a fixed, clearly labelled outcome.</p>
+                  <div class="sample-grid">
+                    <button class="sample-button" type="button" data-fixture="supported" aria-pressed="false"><strong>Supported damage sample</strong><span>Evaluation → review-ready draft</span></button>
+                    <button class="sample-button" type="button" data-fixture="poor" aria-pressed="false"><strong>Insufficient evidence sample</strong><span>Evaluation → agent decision</span></button>
+                  </div>
+                </div>
+              </details>
+
+              <div class="intake-actions"><p class="gate-copy" id="gate-copy">Add an image to continue.</p><button class="button button-primary" id="submit-evaluation" type="submit" disabled>Start background evaluation</button></div>
+            </div>
+          </section>
+        </div>
+      </form>
+    </section>
+
+    <section class="screen" data-screen="action" aria-labelledby="action-title" hidden>
+      <div class="breadcrumb-row"><button class="button button-quiet" type="button" data-back-to-queue>← Back to claims</button></div>
+      <div class="page-heading">
+        <div><p class="page-kicker">Human decision required</p><h1 id="action-title" tabindex="-1">Needs your decision</h1><p class="lede" id="action-lede"></p></div>
+        <span class="status-badge status-action">Action required</span>
+      </div>
+      <div class="action-layout">
+        <figure class="panel action-image">
+          <img id="action-image" alt="Submitted vehicle-damage evidence" hidden>
+          <div class="image-missing" id="action-image-missing" hidden>Reattach the custom image to preview it again. Browser file data is not persisted after refresh.</div>
+          <figcaption class="panel-body"><strong id="action-image-name"></strong><p class="metadata" id="action-image-description"></p></figcaption>
+        </figure>
+        <section class="panel warning-panel" aria-labelledby="action-panel-title">
+          <header class="panel-header"><h2 id="action-panel-title">Agent decision required</h2></header>
+          <div class="panel-body">
+            <div id="poor-evidence-content">
+              <p>The image quality is too low to identify damage reliably, so no findings or estimate were drafted (simulated check).</p>
+              <p><strong>Needed to continue:</strong></p>
+              <ul class="needed-list"><li>Wide shot of the full damaged quarter in daylight</li><li>Close-up of the impact area with panel edges visible</li><li>Vehicle-confirmation view under the insurer privacy policy</li></ul>
+              <div class="action-buttons"><button class="button button-primary" id="action-request-evidence" type="button">Request photos</button><button class="button button-danger" id="action-manual-review" type="button">Route to manual review</button></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="review" aria-labelledby="review-title" hidden>
+      <div class="breadcrumb-row"><button class="button button-quiet" type="button" data-back-to-queue>← Back to claims</button></div>
+      <div class="page-heading">
+        <div><p class="page-kicker">Agent-owned assessment</p><h1 id="review-title" tabindex="-1">Review claim <span id="review-claim-id"></span></h1><p class="lede">Check the photo first — AI suggestions unlock after your evidence check. Then decide each finding in turn.</p></div>
+        <span class="status-badge status-ready" id="review-status-badge">Ready for review</span>
+      </div>
+
+      <div class="update-notice" id="returned-banner" hidden style="border-color:#dfa6a3;background:var(--danger-soft);color:var(--danger)">
+        <p><strong>Returned by the senior adjuster:</strong> <span id="returned-reason"></span></p>
+      </div>
+
+      <div class="review-layout">
+        <aside class="evidence-pane" aria-label="Claim record and submitted evidence">
+          <section class="panel" aria-labelledby="record-title">
+            <header class="panel-header"><h2 id="record-title">Claim context</h2><span class="origin-label">Submitted record</span></header>
+            <div class="panel-body"><dl class="record-list"><div><dt>Claim</dt><dd id="record-claim"></dd></div><div><dt>Policy</dt><dd id="record-policy"></dd></div><div><dt>Vehicle</dt><dd id="record-vehicle"></dd></div><div><dt>Submitted</dt><dd id="record-submitted"></dd></div><div><dt>Incident description</dt><dd id="record-incident"></dd></div></dl></div>
+          </section>
+
+          <figure class="panel">
+            <div class="evidence-toolbar">
+              <div class="tool-group" role="group" aria-label="Image zoom controls"><button class="icon-button" id="zoom-out" type="button" aria-label="Zoom out">−</button><button class="icon-button" id="zoom-reset" type="button" aria-label="Reset zoom; current zoom 100 percent">100%</button><button class="icon-button" id="zoom-in" type="button" aria-label="Zoom in">+</button></div>
+              <button class="button button-secondary button-small overlay-toggle" id="toggle-overlay" type="button" aria-pressed="false" aria-describedby="review-image-description">Show AI annotation</button>
+            </div>
+            <div class="evidence-frame">
+              <div class="image-stage" id="image-stage"><img id="review-image" alt="Submitted vehicle-damage evidence"><span class="region-box" id="region-box" aria-hidden="true"><span class="region-label">AI region 1</span></span></div>
+            </div>
+            <figcaption><p class="evidence-description" id="review-image-description" aria-live="polite">Original evidence shown without AI annotation.</p></figcaption>
+          </figure>
+          <p class="fixture-note" id="fixture-note"><strong>Simulated result:</strong> sample findings are fixed demo data. The workflow is real; the model output is not.</p>
+        </aside>
+
+        <div class="review-workspace">
+          <section class="panel evidence-gate" id="evidence-gate" aria-labelledby="evidence-gate-title">
+            <span class="origin-label origin-human">Agent check</span>
+            <h2 id="evidence-gate-title" style="margin-top:10px">Is this evidence sufficient to review?</h2>
+            <p class="muted">Judge the original photo first — AI suggestions stay hidden until you accept it.</p>
+            <div class="gate-options">
+              <button class="gate-option primary" id="evidence-adequate" type="button"><strong>Evidence adequate</strong><span>Start the guided review.</span></button>
+              <button class="gate-option" id="evidence-request" type="button"><strong>Request more evidence</strong><span>Pause and list the photos you need.</span></button>
+              <button class="gate-option danger" id="evidence-escalate" type="button"><strong>Escalate</strong><span>Send to senior manual review.</span></button>
+            </div>
+          </section>
+
+          <div class="guided-review" id="guided-review" hidden>
+            <section class="panel review-progress" aria-label="Finding review progress">
+              <div class="progress-top"><strong id="review-progress-label">0 of 0 findings resolved</strong><span id="review-progress-status">Review one item at a time</span></div>
+              <div class="progress-track" id="review-progress" role="progressbar" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-label="Findings resolved"><div class="progress-fill" id="review-progress-fill"></div></div>
+              <div class="progress-rail" id="progress-rail" role="group" aria-label="Findings"></div>
+            </section>
+
+            <section class="panel finding-panel" aria-labelledby="active-finding-title">
+              <header class="finding-header">
+                <div><span class="origin-label origin-ai" id="active-origin">AI suggestion</span><h2 id="active-finding-title" tabindex="-1">Finding</h2><p id="active-finding-observation"></p></div>
+                <span class="decision-badge decision-pending" id="active-decision">Pending</span>
+              </header>
+              <div class="finding-body">
+                <dl class="finding-details">
+                  <div><dt>Severity</dt><dd id="active-severity"></dd></div>
+                  <div><dt>Repair operation</dt><dd id="active-operation"></dd></div>
+                  <div><dt>Photo reference</dt><dd id="active-evidence"></dd></div>
+                  <div><dt>Why suggested</dt><dd id="active-rationale"></dd></div>
+                </dl>
+                <div class="source-row" id="active-sources"><span>Supporting sources</span></div>
+                <div class="cost-strip"><div><span>Parts / materials</span><strong id="active-parts"></strong></div><div><span>Labor</span><strong id="active-labor"></strong></div><div><span>Line total</span><strong id="active-line-total"></strong></div></div>
+                <p class="finding-limitation" id="active-limitation"></p>
+                <div class="before-after" id="active-diff" hidden></div>
+
+                <div class="decision-actions" id="decision-actions">
+                  <button class="button button-confirm" id="confirm-finding" type="button">Confirm</button>
+                  <button class="button button-secondary" id="correct-finding" type="button">Correct</button>
+                  <button class="button button-danger" id="reject-finding" type="button">Reject suggestion</button>
+                </div>
+                <div class="resolved-actions" id="resolved-actions" hidden><p id="resolved-copy"></p><button class="button button-secondary button-small" id="reopen-finding" type="button">Reopen decision</button></div>
+
+                <form class="inline-editor" id="finding-editor" novalidate hidden>
+                  <h3 id="editor-title">Correct and confirm finding</h3>
+                  <p class="editor-intro">Saving logs the change, your reason, and any sources to the audit trail.</p>
+                  <div class="before-after" id="editor-before">Original draft values will remain visible in the audit trace.</div>
+                  <div class="editor-grid">
+                    <label class="field"><span class="field-label">Component / finding</span><input class="input" id="edit-component" required aria-describedby="finding-error"></label>
+                    <label class="field"><span class="field-label">Severity</span><select class="select" id="edit-severity" aria-describedby="finding-error"><option>Minor</option><option>Moderate</option><option>Severe</option><option>Uncertain</option><option>No visible damage</option></select></label>
+                    <label class="field field-wide"><span class="field-label">Visible observation</span><textarea class="textarea" id="edit-observation" required aria-describedby="finding-error"></textarea></label>
+                    <label class="field field-wide"><span class="field-label">Repair operation</span><input class="input" id="edit-operation" required aria-describedby="finding-error"></label>
+                    <label class="field field-wide"><span class="field-label">Photo reference</span><input class="input" id="edit-evidence" required aria-describedby="finding-error"><span class="field-hint">Required for every finding.</span></label>
+                    <label class="field"><span class="field-label">Parts / materials (USD)</span><input class="input" id="edit-parts" type="number" min="0" max="100000" step="0.01" required aria-describedby="finding-error"></label>
+                    <label class="field"><span class="field-label">Labor hours</span><input class="input" id="edit-hours" type="number" min="0" max="100" step="0.1" required aria-describedby="finding-error"></label>
+                    <label class="field"><span class="field-label">Labor rate (USD / hour)</span><input class="input" id="edit-rate" type="number" min="0" max="10000" step="0.01" required aria-describedby="finding-error"></label>
+                    <label class="field"><span class="field-label">Correction reason</span><select class="select" id="edit-reason" required aria-describedby="finding-error"><option value="">Select a reason</option><option>Evidence supports a different finding</option><option>Component or damage corrected</option><option>Repair operation corrected</option><option>Cost updated from approved source</option><option>Agent identified an omitted finding</option><option>Other documented correction</option></select></label>
+                    <label class="field field-wide"><span class="field-label">Repair-operation support</span><textarea class="textarea" id="edit-operation-source" placeholder="Cite support — required when the operation changes" aria-describedby="finding-error"></textarea></label>
+                    <label class="field field-wide"><span class="field-label">Price / rate support</span><textarea class="textarea" id="edit-price-source" placeholder="Cite support — required when costs change" aria-describedby="finding-error"></textarea></label>
+                  </div>
+                  <p class="validation-error" id="finding-error" role="alert" hidden></p>
+                  <div class="editor-actions"><button class="button button-secondary" id="cancel-editor" type="button">Cancel</button><button class="button button-primary" id="save-finding" type="submit">Save correction &amp; confirm</button></div>
+                </form>
+
+                <form class="inline-editor" id="reject-form" novalidate hidden>
+                  <h3>Reject this suggestion</h3>
+                  <label class="field"><span class="field-label">Rejection reason</span><textarea class="textarea" id="reject-reason" placeholder="Explain why the suggestion is unsupported or out of scope" required aria-describedby="reject-error"></textarea></label>
+                  <p class="validation-error" id="reject-error" role="alert" hidden></p>
+                  <div class="editor-actions"><button class="button button-secondary" id="cancel-reject" type="button">Cancel</button><button class="button button-danger" id="reject-and-preserve" type="submit">Reject and preserve in trace</button></div>
+                </form>
+              </div>
+            </section>
+
+            <div class="sequential-nav">
+              <div class="sequential-nav-group"><button class="button button-secondary" id="previous-finding" type="button">← Previous</button><button class="button button-secondary" id="next-finding" type="button">Next →</button></div>
+              <div class="sequential-nav-group"><button class="button button-quiet" id="add-finding" type="button">+ Add agent finding</button><button class="button button-secondary" id="next-unresolved" type="button">Review next unresolved</button></div>
+            </div>
+
+            <section class="panel estimate-panel" aria-labelledby="estimate-title">
+              <header class="panel-header"><div><p class="page-kicker">Totals</p><h2 id="estimate-title">Estimate</h2></div></header>
+              <div class="panel-body">
+                <div class="estimate-grid">
+                  <div class="estimate-value"><span>AI-proposed estimate</span><strong id="estimate-proposed">$0.00</strong><small>Fixed AI baseline</small></div>
+                  <div class="estimate-value"><span id="confirmed-estimate-label">Agent-confirmed subtotal</span><strong id="estimate-confirmed">$0.00</strong><small>Pending lines excluded</small></div>
+                  <div class="estimate-value"><span>Unresolved findings</span><strong id="estimate-unresolved">0</strong><small id="estimate-status-copy">Review required</small></div>
+                </div>
+                <p class="estimate-footnote">Prices come from the labelled demo pricebooks — the vision model never sets prices.</p>
+              </div>
+            </section>
+
+            <section class="panel limits-panel" aria-labelledby="limits-title"><div class="panel-body"><h2 id="limits-title">What photos can't show</h2><p><strong>Photos cannot rule out hidden damage — structural, underbody, mounting tabs, sensors, or safety systems.</strong> If teardown reveals more, the supplement process applies.</p></div></section>
+
+            <details class="panel activity-panel"><summary><span>Review activity</span><span class="count-badge" id="activity-count">0 events</span></summary><ol class="activity-list" id="activity-list"></ol></details>
+
+            <section class="review-action-bar" aria-label="Claim review actions">
+              <div class="review-action-copy"><strong id="action-progress">Resolve every finding to continue</strong><span>Sending a packet never authorizes repair or payment.</span></div>
+              <div class="review-action-buttons"><button class="button button-secondary button-small" id="request-evidence" type="button">Request evidence</button><button class="button button-danger button-small" id="escalate-claim" type="button">Escalate</button><button class="button button-primary" id="review-packet" type="button" disabled>Review handoff packet</button></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="handoff" aria-labelledby="handoff-title" hidden>
+      <div class="breadcrumb-row"><button class="button button-quiet" id="back-to-findings" type="button">← Back to findings</button></div>
+      <div class="page-heading"><div><p class="page-kicker">Final agent checkpoint</p><h1 id="handoff-title" tabindex="-1">Review senior handoff packet</h1><p class="lede">Confirm what changed, what remains limited, and who owns the next decision.</p></div></div>
+      <div class="handoff-layout">
+        <div>
+          <section class="panel" aria-labelledby="packet-title">
+            <header class="panel-header"><h2 id="packet-title">Reviewed findings</h2><span class="origin-label origin-human">Agent-owned packet</span></header>
+            <div class="panel-body"><div class="packet-stats"><div class="packet-stat"><span>Confirmed</span><strong id="packet-confirmed">0</strong></div><div class="packet-stat"><span>Corrected / added</span><strong id="packet-corrected">0</strong></div><div class="packet-stat"><span>Rejected</span><strong id="packet-rejected">0</strong></div><div class="packet-stat"><span>Source changes</span><strong id="packet-sources">0</strong></div></div><p class="metadata" id="packet-source-summary"></p><ul class="packet-findings" id="packet-findings"></ul></div>
+          </section>
+          <details class="panel activity-panel" id="packet-audit-panel" style="margin-top:12px" open>
+            <summary><span>Complete audit trail — AI proposal, agent decisions, before/after values</span><span class="count-badge" id="packet-audit-count">0 events</span></summary>
+            <p class="metadata" style="padding:0 17px 8px">Chronological record carried with the packet. Original AI values are preserved even where the agent corrected or rejected them.</p>
+            <ol class="activity-list" id="packet-audit-list"></ol>
+          </details>
+        </div>
+        <aside>
+          <section class="panel packet-estimate"><span>Reviewed estimate</span><strong id="packet-total">$0.00</strong><p class="metadata" id="packet-delta"></p></section>
+          <section class="panel limits-panel" style="margin-top:12px"><div class="panel-body"><h2>Limitations retained</h2><p>Exterior evidence cannot exclude hidden or structural damage. A supplement may follow teardown.</p></div></section>
+          <section class="panel" id="agent-decision-panel" style="margin-top:12px"><div class="panel-body"><h2>Decision ownership</h2><p>The senior adjuster reviews and authorizes or returns this packet. Sending it does not approve repair, payment, coverage, or liability.</p><div class="packet-actions"><button class="button button-primary button-wide" id="send-to-senior" type="button">Send to senior adjuster</button><button class="button button-secondary button-wide" id="handoff-request" type="button">Request more evidence</button><button class="button button-danger button-wide" id="handoff-escalate" type="button">Route to manual review</button></div></div></section>
+          <section class="panel" id="senior-decision-panel" style="margin-top:12px" hidden aria-labelledby="senior-decision-title">
+            <header class="panel-header"><div><p class="page-kicker">Demo role switch</p><h2 id="senior-decision-title">Senior adjuster decision</h2></div><span class="origin-label origin-human">Acting as senior</span></header>
+            <div class="panel-body">
+              <p class="muted">Review the packet and full audit trail above, then authorize repairs or return the claim to the agent with a reason. Only this role can authorize.</p>
+              <div class="packet-actions" id="senior-decision-actions">
+                <button class="button button-confirm button-wide" id="senior-authorize" type="button">Authorize repairs</button>
+                <button class="button button-danger button-wide" id="senior-return" type="button">Return to agent</button>
+              </div>
+              <form class="inline-editor" id="senior-return-form" novalidate hidden>
+                <label class="field"><span class="field-label">Return reason</span><textarea class="textarea" id="senior-return-reason" placeholder="Explain what the agent must address before re-submission" required aria-describedby="senior-return-error"></textarea></label>
+                <p class="validation-error" id="senior-return-error" role="alert" hidden>Enter a return reason for the agent.</p>
+                <div class="editor-actions"><button class="button button-secondary" id="cancel-senior-return" type="button">Cancel</button><button class="button button-danger" type="submit">Confirm return to agent</button></div>
+              </form>
+              <p class="inline-note" id="senior-decision-note" hidden></p>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="outcome" aria-labelledby="outcome-title" hidden>
+      <div class="breadcrumb-row"><button class="button button-quiet" type="button" data-back-to-queue>← Back to claims</button></div>
+      <div class="page-heading"><div><p class="page-kicker">Persistent claim status</p><h1 id="outcome-title" tabindex="-1">Claim status</h1></div></div>
+      <section class="panel outcome-panel">
+        <div class="outcome-banner neutral" id="outcome-banner"><h2 id="outcome-heading"></h2><p id="outcome-copy"></p></div>
+        <div class="panel-body"><dl class="outcome-grid" id="outcome-grid"></dl><div id="outcome-details"></div><div class="outcome-actions"><button class="button button-primary" id="outcome-new" type="button">Start new assessment</button><button class="button button-secondary" id="outcome-view-packet" type="button" hidden>View sent packet</button><button class="button button-secondary" type="button" data-back-to-queue>Return to claims</button></div></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">Damage Review Copilot prototype · browser-only simulated data · <a href="PRD.pdf">Read the PRD</a> · <a href="https://github.com/ryhanhussain/take-home-task">View project notes</a></footer>
+
+  <dialog class="drawer" id="source-dialog" aria-labelledby="source-dialog-title">
+    <header class="dialog-header"><div><p class="page-kicker">Source support</p><h2 id="source-dialog-title">Source</h2></div><button class="dialog-close" type="button" data-close-dialog="source-dialog" aria-label="Close source details">×</button></header>
+    <div class="dialog-body"><p class="metadata" id="source-dialog-meta"></p><blockquote class="source-excerpt" id="source-dialog-excerpt"></blockquote><p id="source-dialog-support"></p><p class="inline-note" id="source-dialog-fixture"></p></div>
+    <footer class="dialog-actions"><button class="button button-primary" type="button" data-close-dialog="source-dialog">Back to finding</button></footer>
+  </dialog>
+
+  <dialog id="evidence-dialog" aria-labelledby="evidence-dialog-title">
+    <form id="evidence-form" novalidate>
+      <header class="dialog-header"><div><p class="page-kicker">Agent action</p><h2 id="evidence-dialog-title">Request more evidence</h2></div><button class="dialog-close" type="button" data-close-dialog="evidence-dialog" aria-label="Close evidence request">×</button></header>
+      <div class="dialog-body"><p class="muted">Choose the views the policyholder should provide. Nothing is sent until you confirm.</p><div class="checkbox-list"><label class="checkbox-row"><input type="checkbox" name="evidence-view" value="Wide shot of the full damaged quarter in daylight" checked aria-describedby="evidence-error"><span>Wide shot of the full damaged quarter in daylight</span></label><label class="checkbox-row"><input type="checkbox" name="evidence-view" value="Close-up of the impact area with panel edges visible" checked aria-describedby="evidence-error"><span>Close-up of the impact area with panel edges visible</span></label><label class="checkbox-row"><input type="checkbox" name="evidence-view" value="Vehicle-confirmation view under the insurer privacy policy" aria-describedby="evidence-error"><span>Vehicle-confirmation view under the insurer privacy policy</span></label></div><p class="validation-error" id="evidence-error" role="alert" hidden>Select at least one requested view.</p></div>
+      <footer class="dialog-actions"><button class="button button-secondary" type="button" data-close-dialog="evidence-dialog">Cancel</button><button class="button button-primary" type="submit">Confirm evidence request</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="manual-dialog" aria-labelledby="manual-dialog-title">
+    <form id="manual-form" novalidate>
+      <header class="dialog-header"><div><p class="page-kicker">Agent action</p><h2 id="manual-dialog-title">Route to manual review</h2></div><button class="dialog-close" type="button" data-close-dialog="manual-dialog" aria-label="Close manual review form">×</button></header>
+      <div class="dialog-body"><label class="field"><span class="field-label">Routing reason</span><select class="select" id="manual-reason" required aria-describedby="manual-error"><option value="">Select a reason</option><option>Potential hidden or structural damage</option><option>Evidence conflicts with incident description</option><option>Vehicle or damage is outside supported scope</option><option>Draft does not support a safe recommendation</option><option>Other expert review required</option></select></label><label class="field"><span class="field-label">Optional handoff note</span><textarea class="textarea" id="manual-note" placeholder="Add context for the senior adjuster"></textarea></label><p class="validation-error" id="manual-error" role="alert" hidden>Select a routing reason.</p></div>
+      <footer class="dialog-actions"><button class="button button-secondary" type="button" data-close-dialog="manual-dialog">Cancel</button><button class="button button-danger" type="submit">Confirm manual review route</button></footer>
+    </form>
+  </dialog>
+
+  <p class="toast" id="toast" hidden></p>
+  <span class="visually-hidden" id="background-live" role="status" aria-live="polite"></span>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var STORAGE_KEY = "damage-review-copilot:v4";
+      var STORAGE_VERSION = 4;
+      var SAMPLE_IMAGE = "assets/sample-a-bumper.jpg";
+      var STATUS = {
+        "review-ready": { label: "Ready for review", css: "status-ready" },
+        "evaluating": { label: "Evaluating", css: "status-evaluating" },
+        "action-required": { label: "Action required", css: "status-action" },
+        "needs-evidence": { label: "Needs evidence", css: "status-evidence" },
+        "manual-review": { label: "Manual review", css: "status-manual" },
+        "senior-review": { label: "Senior review", css: "status-senior" },
+        "returned": { label: "Returned by senior", css: "status-action" },
+        "authorized": { label: "Repairs authorized", css: "status-senior" }
+      };
+      var SORT_COPY = {
+        "submitted-asc": ["Oldest first", "shows the longest-waiting claims."],
+        "submitted-desc": ["Newest first", "shows the latest submissions."],
+        "action-first": ["Needs my action", "puts your decisions before waiting states."],
+        "evidence-first": ["Weakest evidence", "surfaces incomplete photos first."],
+        "eligibility-first": ["Out-of-scope first", "surfaces claims that may need routing."],
+        "estimate-desc": ["Highest estimate", "orders reviewed totals; unreviewed claims stay last."]
+      };
+
+      function element(tag, className, textValue) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (textValue !== undefined && textValue !== null) node.textContent = String(textValue);
+        return node;
+      }
+
+      function nowIso() { return new Date().toISOString(); }
+      function money(value) {
+        if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value));
+      }
+      function formatSubmitted(iso) {
+        return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+      }
+      function formatTime(iso) {
+        return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(iso));
+      }
+      function minutesAgoIso(minutes) { return new Date(Date.now() - minutes * 60000).toISOString(); }
+      function ageInfo(claim) {
+        var minutes = Math.max(0, Math.round((Date.now() - new Date(claim.submittedAt).getTime()) / 60000));
+        var text = minutes < 60 ? minutes + "m" : Math.floor(minutes / 60) + "h " + (minutes % 60) + "m";
+        return { text: text + " old", css: "age-chip" };
+      }
+      function lineTotal(finding) { return Number(finding.parts) + (Number(finding.hours) * Number(finding.rate)); }
+      function copyFinding(finding) {
+        return { component: finding.component, observation: finding.observation, severity: finding.severity, operation: finding.operation, evidence: finding.evidence, parts: finding.parts, hours: finding.hours, rate: finding.rate, sourceIds: (finding.sourceIds || []).slice() };
+      }
+
+      function makeSources() {
+        var retrievedAt = formatSubmitted(nowIso());
+        return [
+          { id: "R1", label: "Repair guide §7.2", kind: "Repair guide", title: "Demo Collision Repair Guide — Front Bumper", version: "Fixture v2026.2", locator: "Section 7.2 · Front bumper side seam", excerpt: "When the bumper cover separates at the side seam, inspect the retainer, mounting hardware, headlamp tabs, and adjacent panel alignment before confirming repair scope.", retrievedAt: retrievedAt, supports: "Repair operation and inspection scope", simulated: true },
+          { id: "P1", label: "Pricebook BUM-RF-014", kind: "Pricebook", title: "Demo Market Collision Pricebook", version: "Fixture v2026-Q2 · USD", locator: "Item BUM-RF-014", excerpt: "Front bumper-cover repair and refinish: materials allowance USD 85.00 for the supported exterior-damage segment.", retrievedAt: retrievedAt, supports: "Bumper materials allowance", simulated: true },
+          { id: "P2", label: "Pricebook RET-COND-003", kind: "Pricebook", title: "Demo Market Collision Pricebook", version: "Fixture v2026-Q2 · USD", locator: "Item RET-COND-003", excerpt: "Conditional bumper mounting-hardware allowance: USD 38.00 when fastener condition cannot be confirmed from exterior media.", retrievedAt: retrievedAt, supports: "Conditional mounting-hardware allowance", simulated: true },
+          { id: "L1", label: "Labor guide BUM-31", kind: "Labor guide", title: "Demo Market Labor Operations Guide", version: "Fixture v2026-Q2", locator: "Operations BUM-31, RET-08, INSP-05", excerpt: "Illustrative labor: bumper repair/refinish 3.0 h; mounting inspection 0.8 h; headlamp and fender alignment inspection 0.5 h.", retrievedAt: retrievedAt, supports: "Labor hours for the three proposed lines", simulated: true },
+          { id: "M1", label: "Rate card DM-USD", kind: "Market rate", title: "Demo Approved Labor Rate Card", version: "Fixture effective 01 Jul 2026", locator: "Market DM-USD · Rate class B", excerpt: "Approved illustrative body and refinish labor rate: USD 58.00 per hour for this demo market.", retrievedAt: retrievedAt, supports: "Labor rate used across proposed lines", simulated: true }
+        ];
+      }
+
+      function makeFinding(data) {
+        var finding = Object.assign({ origin: "ai", rationale: "Visible evidence and controlled repair guidance support this proposed review item.", limitation: "Confirm the component and operation against the original image before deciding.", decision: "pending", reason: "", original: null, sourceIds: [], manualOperationSourceId: "", manualPriceSourceId: "" }, data);
+        finding.proposed = finding.origin === "ai" ? copyFinding(finding) : null;
+        return finding;
+      }
+
+      function makeAssessment() {
+        return {
+          sources: makeSources(),
+          findings: [
+            makeFinding({ id: "finding-bumper", component: "Front bumper cover", observation: "Separated and misaligned at the left seam", severity: "Moderate", operation: "Repair, refinish, and align", evidence: "Region 1 · left bumper seam", rationale: "The sample region shows a separated bumper seam with visible misalignment.", limitation: "Exterior evidence cannot confirm the condition behind the bumper cover.", parts: 85, hours: 3, rate: 58, sourceIds: ["R1", "P1", "L1", "M1"] }),
+            makeFinding({ id: "finding-retainer", component: "Left bumper mounting area", observation: "Separation visible; fastener condition is not assessable", severity: "Uncertain", operation: "Inspect before confirming hardware replacement", evidence: "Region 1 · mounting edge", rationale: "The seam is open, but the submitted angle does not expose the fastener condition.", limitation: "Do not confirm replacement until the mounting hardware is physically inspected.", parts: 38, hours: .8, rate: 58, sourceIds: ["R1", "P2", "L1", "M1"] }),
+            makeFinding({ id: "finding-headlamp", component: "Left headlamp / fender", observation: "No visible lens break or panel deformation in the submitted view", severity: "Minor", operation: "Inspect alignment and mounting tabs", evidence: "Adjacent to Region 1", rationale: "No surface break is visible, but the component sits next to the impact area.", limitation: "Mounting tabs and internal headlamp damage are not assessable from this exterior view.", parts: 0, hours: .5, rate: 58, sourceIds: ["R1", "L1", "M1"] })
+          ]
+        };
+      }
+
+      function seedClaims() {
+        var reviewed = makeAssessment();
+        reviewed.findings.forEach(function (finding) { finding.decision = "confirmed"; });
+        return [
+          { id: "CLM-2026-04182", policy: "POL-792-104", vehicle: "Volkswagen Jetta Mk IV", incident: "Low-speed front-left impact; exterior bumper damage reported.", submittedAt: minutesAgoIso(250), status: "review-ready", evidence: "Adequate", eligibility: "Supported", assessmentOutcome: "supported", imageName: "sample-a-bumper.jpg", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: makeAssessment(), evidenceReview: { decision: "pending", actor: "", timestamp: "" }, audit: [], estimateState: "proposed", agentNote: "", evaluationCompletesAt: null, fixture: "supported", isNew: false },
+          { id: "CLM-2026-04183", policy: "POL-792-211", vehicle: "Toyota Camry 2022", incident: "Rear-corner impact; submitted image is dark and blurred.", submittedAt: minutesAgoIso(200), status: "action-required", evidence: "Insufficient", eligibility: "Review needed", assessmentOutcome: "poor-evidence", imageName: "Sample A · simulated low-quality treatment", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: null, evidenceReview: { decision: "pending", actor: "", timestamp: "" }, audit: [], estimateState: "none", agentNote: "", evaluationCompletesAt: null, fixture: "poor", isNew: false },
+          { id: "CLM-2026-04184", policy: "POL-793-028", vehicle: "Nissan Altima 2023", incident: "Side impact; exterior door and mirror damage reported.", submittedAt: minutesAgoIso(180), status: "senior-review", evidence: "Adequate", eligibility: "Supported", assessmentOutcome: "supported", imageName: "claim-04184-evidence.jpg", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: null, evidenceReview: { decision: "adequate", actor: "Agent", timestamp: minutesAgoIso(172) }, audit: [], estimateState: "reviewed", reviewedEstimate: 1248, agentNote: "", evaluationCompletesAt: null, fixture: "supported", isNew: false },
+          { id: "CLM-2026-04185", policy: "POL-793-144", vehicle: "Ford Explorer 2021", incident: "Front impact with possible sensor and structural involvement.", submittedAt: minutesAgoIso(150), status: "manual-review", evidence: "Partial", eligibility: "Out of scope", assessmentOutcome: "manual", imageName: "claim-04185-evidence.jpg", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: null, evidenceReview: { decision: "escalated", actor: "Agent", timestamp: minutesAgoIso(143) }, audit: [], estimateState: "none", agentNote: "", evaluationCompletesAt: null, fixture: "supported", isNew: false },
+          { id: "CLM-2026-04186", policy: "POL-793-309", vehicle: "BMW X3 2024", incident: "Rear-quarter impact; broad exterior repair scope reported.", submittedAt: minutesAgoIso(130), status: "needs-evidence", evidence: "More evidence requested", eligibility: "Review needed", assessmentOutcome: "poor-evidence", imageName: "Sample A · simulated low-quality treatment", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: null, evidenceReview: { decision: "requested", actor: "Agent", timestamp: minutesAgoIso(121) }, requestedViews: ["Wide shot of the full damaged quarter in daylight"], audit: [], estimateState: "none", agentNote: "", evaluationCompletesAt: null, fixture: "poor", isNew: false },
+          { id: "CLM-2026-04187", policy: "POL-793-412", vehicle: "Volkswagen Jetta Mk IV", incident: "Front-left exterior impact submitted with adequate media.", submittedAt: minutesAgoIso(40), status: "evaluating", evidence: "Pending", eligibility: "Pending", assessmentOutcome: "", imageName: "claim-04187-evidence.jpg", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: null, evidenceReview: { decision: "pending", actor: "", timestamp: "" }, audit: [], estimateState: "none", agentNote: "", evaluationCompletesAt: Date.now() + 12000, fixture: "supported", isNew: false },
+          { id: "CLM-2026-04188", policy: "POL-793-576", vehicle: "Volkswagen Jetta Mk IV", incident: "Minor front-bumper impact; agent review completed.", submittedAt: minutesAgoIso(25), status: "senior-review", evidence: "Adequate", eligibility: "Supported", assessmentOutcome: "supported", imageName: "claim-04188-evidence.jpg", imageUrl: SAMPLE_IMAGE, arbitrary: false, assessment: reviewed, evidenceReview: { decision: "adequate", actor: "Agent", timestamp: minutesAgoIso(21) }, audit: [{ action: "Senior handoff created", detail: "Three findings confirmed; senior decision pending.", actor: "Agent", timestamp: minutesAgoIso(17) }], estimateState: "reviewed", reviewedEstimate: 372.4, agentNote: "", evaluationCompletesAt: null, fixture: "supported", isNew: false }
+        ];
+      }
+
+      var claims = [];
+      var app = {
+        screen: "queue",
+        selectedClaimId: "",
+        activeFindingId: "",
+        queueSort: "submitted-asc",
+        statusFilter: "all",
+        search: "",
+        nextClaimSequence: 4189,
+        pendingQueueUpdates: [],
+        timers: [],
+        zoom: 1,
+        overlayVisible: false,
+        editorMode: "edit",
+        decisionLocked: false,
+        sourceTrigger: null,
+        dialogTrigger: null,
+        intake: { initialized: false, fixture: "", fileName: "", imageUrl: "", objectUrl: "", arbitrary: false }
+      };
+      var screens = Array.prototype.slice.call(document.querySelectorAll("[data-screen]"));
+      var toast = document.getElementById("toast");
+      var toastTimer = 0;
+
+      function getClaim(id) { return claims.find(function (claim) { return claim.id === id; }) || null; }
+      function getFinding(claim, id) { return claim && claim.assessment ? claim.assessment.findings.find(function (finding) { return finding.id === id; }) || null : null; }
+      function getSource(claim, id) { return claim && claim.assessment ? claim.assessment.sources.find(function (source) { return source.id === id; }) || null : null; }
+
+      function safeState() {
+        return claims.map(function (claim) {
+          var copy = JSON.parse(JSON.stringify(claim));
+          delete copy.objectUrl;
+          if (copy.arbitrary) {
+            copy.imageUrl = "";
+            copy.requiresReattach = true;
+          }
+          return copy;
+        });
+      }
+
+      function saveState() {
+        try {
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, claims: safeState(), nextClaimSequence: app.nextClaimSequence, queueSort: app.queueSort, statusFilter: app.statusFilter, pendingQueueUpdates: app.pendingQueueUpdates }));
+        } catch (error) {
+          document.getElementById("background-live").textContent = "Demo state could not be stored in this tab.";
+        }
+      }
+
+      function loadState() {
+        try {
+          var raw = sessionStorage.getItem(STORAGE_KEY);
+          if (!raw) return false;
+          var state = JSON.parse(raw);
+          if (!state || state.version !== STORAGE_VERSION || !Array.isArray(state.claims)) return false;
+          claims = state.claims;
+          app.nextClaimSequence = Number(state.nextClaimSequence) || 4189;
+          app.queueSort = state.queueSort || "submitted-asc";
+          app.statusFilter = state.statusFilter || "all";
+          app.pendingQueueUpdates = Array.isArray(state.pendingQueueUpdates) ? state.pendingQueueUpdates : [];
+          claims.forEach(function (claim) {
+            if (claim.arbitrary && !claim.imageUrl) claim.requiresReattach = true;
+          });
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function addAudit(claim, action, detail, extra) {
+        if (!claim.audit) claim.audit = [];
+        claim.audit.push(Object.assign({ action: action, detail: detail, actor: "Agent", timestamp: nowIso() }, extra || {}));
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.hidden = false;
+        document.getElementById("background-live").textContent = message;
+        toastTimer = window.setTimeout(function () { toast.hidden = true; }, 4200);
+      }
+
+      function updateHash(value, replace) {
+        var target = "#" + value;
+        if (window.location.hash === target) return;
+        if (replace) history.replaceState(null, "", target);
+        else history.pushState(null, "", target);
+      }
+
+      function showScreen(name, focusId, hashValue, replaceHash) {
+        app.screen = name;
+        screens.forEach(function (screen) { screen.hidden = screen.getAttribute("data-screen") !== name; });
+        var claimsNav = document.getElementById("claims-nav");
+        if (name === "queue") claimsNav.setAttribute("aria-current", "page");
+        else claimsNav.removeAttribute("aria-current");
+        window.scrollTo(0, 0);
+        if (hashValue) updateHash(hashValue, replaceHash);
+        var focusTarget = document.getElementById(focusId);
+        if (focusTarget) window.setTimeout(function () { focusTarget.focus(); }, 0);
+      }
+
+      function statusBadge(claim) {
+        var meta = STATUS[claim.status] || STATUS.evaluating;
+        return element("span", "status-badge " + meta.css, meta.label);
+      }
+
+      function findingDecisionLabel(finding) {
+        if (finding.decision === "confirmed") return finding.origin === "agent" ? "Agent finding confirmed" : "Confirmed";
+        if (finding.decision === "corrected") return finding.origin === "agent" ? "Agent-added & confirmed" : "Corrected & confirmed";
+        if (finding.decision === "rejected") return "Rejected";
+        return "Pending";
+      }
+
+      function decisionClass(decision) { return decision === "pending" ? "decision-pending" : "decision-" + decision; }
+      function assessmentProgress(claim) {
+        var findings = claim.assessment ? claim.assessment.findings : [];
+        var resolved = findings.filter(function (finding) { return finding.decision !== "pending"; }).length;
+        var active = findings.filter(function (finding) { return finding.decision === "confirmed" || finding.decision === "corrected"; }).length;
+        return { total: findings.length, resolved: resolved, active: active, complete: findings.length > 0 && resolved === findings.length };
+      }
+      function proposedTotal(claim) {
+        if (!claim.assessment) return null;
+        return claim.assessment.findings.reduce(function (sum, finding) { return finding.proposed ? sum + Number(finding.proposed.parts) + (Number(finding.proposed.hours) * Number(finding.proposed.rate)) : sum; }, 0);
+      }
+      function confirmedTotal(claim) {
+        if (!claim.assessment) return null;
+        return claim.assessment.findings.reduce(function (sum, finding) { return finding.decision === "confirmed" || finding.decision === "corrected" ? sum + lineTotal(finding) : sum; }, 0);
+      }
+      function estimateDisplay(claim) {
+        if ((claim.status === "review-ready" || claim.status === "returned") && claim.assessment) {
+          var progress = assessmentProgress(claim);
+          if (progress.complete) return { value: confirmedTotal(claim), state: "Reviewed", note: "Every finding decided" };
+          var evidenceAdequate = claim.evidenceReview && claim.evidenceReview.decision === "adequate";
+          return { value: null, state: evidenceAdequate ? "Agent review" : "Draft hidden", note: evidenceAdequate ? (progress.total - progress.resolved) + " unresolved" : "Evidence check first" };
+        }
+        if (claim.estimateState === "reviewed" && Number.isFinite(Number(claim.reviewedEstimate))) return { value: Number(claim.reviewedEstimate), state: "Reviewed", note: "Human-reviewed total" };
+        return { value: null, state: "No estimate", note: "Not created" };
+      }
+      function actionLabel(claim) {
+        if (claim.status === "review-ready") return "Review draft";
+        if (claim.status === "evaluating") return "View progress";
+        if (claim.status === "action-required") return "Decide now";
+        if (claim.status === "needs-evidence") return "View request";
+        if (claim.status === "returned") return "Address return";
+        return "View status";
+      }
+      function nextOwner(claim) {
+        if (claim.status === "review-ready") return "You · review the draft";
+        if (claim.status === "evaluating") return "System · evaluating";
+        if (claim.status === "action-required") return "You · decision needed";
+        if (claim.status === "needs-evidence") return "Policyholder · new photos";
+        if (claim.status === "manual-review") return "Senior adjuster · manual assessment";
+        if (claim.status === "returned") return "You · address the senior's return";
+        if (claim.status === "authorized") return "Policyholder · repairs at approved shop";
+        return "Senior adjuster · authorization";
+      }
+      function statusRank(claim) {
+        var ranks = { "action-required": 0, "returned": 1, "review-ready": 2, "evaluating": 3, "needs-evidence": 4, "manual-review": 5, "senior-review": 6, "authorized": 7 };
+        return Object.prototype.hasOwnProperty.call(ranks, claim.status) ? ranks[claim.status] : 9;
+      }
+      function evidenceRank(claim) {
+        var ranks = { Insufficient: 0, "More evidence requested": 1, Partial: 2, "Not assessed": 3, Pending: 4, Adequate: 5 };
+        return Object.prototype.hasOwnProperty.call(ranks, claim.evidence) ? ranks[claim.evidence] : 9;
+      }
+      function eligibilityRank(claim) {
+        var ranks = { "Out of scope": 0, "Review needed": 1, "Not assessed": 2, Pending: 3, Supported: 4 };
+        return Object.prototype.hasOwnProperty.call(ranks, claim.eligibility) ? ranks[claim.eligibility] : 9;
+      }
+
+      function queueView(claim) {
+        if (app.pendingQueueUpdates.indexOf(claim.id) !== -1 && claim.queueView) return Object.assign({}, claim, claim.queueView);
+        return claim;
+      }
+
+      function matchingClaims() {
+        var query = app.search.trim().toLowerCase();
+        return claims.map(queueView).filter(function (claim) {
+          var routed = claim.status === "needs-evidence" || claim.status === "manual-review" || claim.status === "senior-review" || claim.status === "authorized";
+          var statusMatch = app.statusFilter === "all" || claim.status === app.statusFilter || (app.statusFilter === "routed" && routed) || (app.statusFilter === "action-required" && claim.status === "returned");
+          var text = [claim.id, claim.policy, claim.vehicle, claim.incident].join(" ").toLowerCase();
+          return statusMatch && (!query || text.indexOf(query) !== -1);
+        });
+      }
+
+      function sortedClaims(list) {
+        return list.slice().sort(function (a, b) {
+          var result = 0;
+          if (app.queueSort === "submitted-asc") result = new Date(a.submittedAt) - new Date(b.submittedAt);
+          else if (app.queueSort === "submitted-desc") result = new Date(b.submittedAt) - new Date(a.submittedAt);
+          else if (app.queueSort === "action-first") result = statusRank(a) - statusRank(b);
+          else if (app.queueSort === "evidence-first") result = evidenceRank(a) - evidenceRank(b);
+          else if (app.queueSort === "eligibility-first") result = eligibilityRank(a) - eligibilityRank(b);
+          else if (app.queueSort === "estimate-desc") {
+            var av = estimateDisplay(a).value;
+            var bv = estimateDisplay(b).value;
+            if (av === null && bv === null) result = 0;
+            else if (av === null) result = 1;
+            else if (bv === null) result = -1;
+            else result = bv - av;
+          }
+          return result || (new Date(a.submittedAt) - new Date(b.submittedAt));
+        });
+      }
+
+      var EVIDENCE_TONE = { "Adequate": "good", "Insufficient": "bad", "More evidence requested": "warn", "Partial": "warn" };
+      var ELIGIBILITY_TONE = { "Supported": "good", "Out of scope": "bad", "Review needed": "warn" };
+
+      function queueCell(label, primary, secondary, tone) {
+        var td = element("td");
+        td.setAttribute("data-label", label);
+        var value = element("span", "cell-label");
+        value.appendChild(element("span", "dot dot-" + (tone || "neutral")));
+        value.appendChild(document.createTextNode(primary));
+        td.appendChild(value);
+        if (secondary) td.appendChild(element("span", "cell-note", secondary));
+        return td;
+      }
+
+      function makeClaimRow(claim) {
+        var urgency = claim.status === "action-required" || claim.status === "returned" ? "row-action" : (claim.status === "review-ready" ? "row-ready" : "");
+        var row = element("tr", (claim.isNew ? "is-new " : "") + urgency);
+        row.id = "queue-" + claim.id;
+        var identity = element("td");
+        identity.setAttribute("data-label", "Claim");
+        identity.appendChild(element("span", "claim-primary", claim.id));
+        identity.appendChild(element("span", "claim-secondary", claim.vehicle + " · " + claim.policy));
+        row.appendChild(identity);
+        var ageCell = element("td");
+        ageCell.setAttribute("data-label", "Submitted / age");
+        ageCell.appendChild(element("span", "cell-label", formatSubmitted(claim.submittedAt)));
+        var age = ageInfo(claim);
+        ageCell.appendChild(element("span", age.css, age.text));
+        row.appendChild(ageCell);
+        var evidenceNote = claim.evidence === "Insufficient" ? "Blocks auto-review" : (claim.evidence === "More evidence requested" ? "Waiting on policyholder" : (claim.evidence === "Adequate" ? "Ready to inspect" : (claim.evidence === "Partial" ? "May need more views" : "Being checked")));
+        row.appendChild(queueCell("Evidence", claim.evidence || "Pending", evidenceNote, EVIDENCE_TONE[claim.evidence]));
+        var eligibilityNote = claim.eligibility === "Supported" ? "In scope" : (claim.eligibility === "Out of scope" ? "Route to a person" : (claim.eligibility === "Review needed" ? "Needs a judgment call" : "Being checked"));
+        row.appendChild(queueCell("Eligibility", claim.eligibility || "Pending", eligibilityNote, ELIGIBILITY_TONE[claim.eligibility]));
+        var estimate = estimateDisplay(claim);
+        var estimateCell = element("td");
+        estimateCell.setAttribute("data-label", "Estimate");
+        estimateCell.appendChild(element("span", "cell-label", estimate.value === null ? estimate.state : money(estimate.value)));
+        estimateCell.appendChild(element("span", "cell-note", estimate.value === null ? estimate.note : estimate.state + " · " + estimate.note));
+        row.appendChild(estimateCell);
+        var statusCell = element("td");
+        statusCell.setAttribute("data-label", "Status");
+        statusCell.appendChild(statusBadge(claim));
+        row.appendChild(statusCell);
+        var actionCell = element("td");
+        actionCell.setAttribute("data-label", "Next action");
+        var buttonClass = claim.status === "action-required" || claim.status === "returned" ? "button-urgent" : (claim.status === "review-ready" ? "button-primary" : "button-secondary");
+        var button = element("button", "button button-small " + buttonClass, actionLabel(claim));
+        button.type = "button";
+        button.setAttribute("data-open-claim", claim.id);
+        button.setAttribute("aria-label", actionLabel(claim) + " for " + claim.id);
+        actionCell.appendChild(button);
+        row.appendChild(actionCell);
+        return row;
+      }
+
+      function renderQueueSummary() {
+        var visibleClaims = claims.map(queueView);
+        document.getElementById("count-ready").textContent = visibleClaims.filter(function (claim) { return claim.status === "review-ready"; }).length;
+        document.getElementById("count-evaluating").textContent = visibleClaims.filter(function (claim) { return claim.status === "evaluating"; }).length;
+        document.getElementById("count-action").textContent = visibleClaims.filter(function (claim) { return claim.status === "action-required" || claim.status === "returned"; }).length;
+        document.getElementById("count-routed").textContent = visibleClaims.filter(function (claim) { return claim.status === "needs-evidence" || claim.status === "manual-review" || claim.status === "senior-review" || claim.status === "authorized"; }).length;
+        document.querySelectorAll("[data-summary-filter]").forEach(function (button) { button.setAttribute("aria-pressed", String(button.getAttribute("data-summary-filter") === app.statusFilter)); });
+      }
+
+      function renderUpdateNotice() {
+        var notice = document.getElementById("queue-update-notice");
+        var count = app.pendingQueueUpdates.length;
+        notice.hidden = count === 0;
+        if (count) {
+          document.getElementById("queue-update-count").textContent = count === 1 ? "1 evaluation has finished." : count + " evaluations have finished.";
+          document.getElementById("apply-queue-updates").textContent = count === 1 ? "Apply update" : "Apply " + count + " updates";
+        }
+      }
+
+      function renderQueue() {
+        renderQueueSummary();
+        renderUpdateNotice();
+        var list = document.getElementById("claims-list");
+        var ordered = sortedClaims(matchingClaims());
+        list.replaceChildren();
+        ordered.forEach(function (claim) { list.appendChild(makeClaimRow(claim)); });
+        document.getElementById("queue-empty").hidden = ordered.length !== 0;
+        document.getElementById("queue-result-count").textContent = ordered.length + (ordered.length === 1 ? " claim" : " claims");
+        var sortCopy = SORT_COPY[app.queueSort];
+        var description = document.getElementById("sort-description");
+        description.replaceChildren();
+        description.appendChild(element("strong", "", sortCopy[0] + " "));
+        description.appendChild(document.createTextNode(sortCopy[1]));
+      }
+
+      function openQueue(focusClaimId, replaceHash) {
+        renderQueue();
+        showScreen("queue", "queue-title", "queue", replaceHash);
+        if (focusClaimId) window.setTimeout(function () {
+          var row = document.getElementById("queue-" + focusClaimId);
+          var button = row ? row.querySelector("[data-open-claim]") : null;
+          if (row) row.scrollIntoView({ block: "center" });
+          if (button) button.focus();
+        }, 20);
+      }
+
+      function clearIntakeImage() {
+        if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        app.intake.fixture = "";
+        app.intake.fileName = "";
+        app.intake.imageUrl = "";
+        app.intake.objectUrl = "";
+        app.intake.arbitrary = false;
+        document.getElementById("damage-input").value = "";
+        document.getElementById("upload-preview").hidden = true;
+        document.getElementById("upload-preview").classList.remove("is-poor");
+        document.getElementById("upload-empty").hidden = false;
+        document.getElementById("custom-upload-note").hidden = true;
+        document.getElementById("evidence-count").textContent = "No image";
+        document.getElementById("upload-error").hidden = true;
+        document.getElementById("damage-input").removeAttribute("aria-invalid");
+        document.querySelectorAll("[data-fixture]").forEach(function (button) { button.setAttribute("aria-pressed", "false"); });
+        updateIntakeGate();
+      }
+
+      function displayIntakeImage(url, fileName, poor) {
+        document.getElementById("preview-image").src = url;
+        document.getElementById("preview-name").textContent = fileName;
+        document.getElementById("upload-preview").hidden = false;
+        document.getElementById("upload-preview").classList.toggle("is-poor", Boolean(poor));
+        document.getElementById("upload-empty").hidden = true;
+        document.getElementById("evidence-count").textContent = "1 image";
+        document.getElementById("upload-error").hidden = true;
+        document.getElementById("damage-input").removeAttribute("aria-invalid");
+        updateIntakeGate();
+      }
+
+      function selectFixture(fixture) {
+        if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        app.intake.objectUrl = "";
+        app.intake.fixture = fixture;
+        app.intake.fileName = fixture === "poor" ? "Sample A · simulated low-quality treatment" : "sample-a-bumper.jpg";
+        app.intake.imageUrl = SAMPLE_IMAGE;
+        app.intake.arbitrary = false;
+        document.getElementById("custom-upload-note").hidden = true;
+        document.querySelectorAll("[data-fixture]").forEach(function (button) { button.setAttribute("aria-pressed", String(button.getAttribute("data-fixture") === fixture)); });
+        displayIntakeImage(SAMPLE_IMAGE, app.intake.fileName, fixture === "poor");
+      }
+
+      function useLocalFile(file) {
+        var allowed = ["image/jpeg", "image/png", "image/webp"];
+        var errorMessage = allowed.indexOf(file.type) === -1 ? "Choose a JPEG, PNG, or WebP image." : (file.size > 8 * 1024 * 1024 ? "Choose an image smaller than 8 MB." : "");
+        if (errorMessage) {
+          clearIntakeImage();
+          var error = document.getElementById("upload-error");
+          error.textContent = errorMessage;
+          error.hidden = false;
+          document.getElementById("damage-input").setAttribute("aria-invalid", "true");
+          document.getElementById("browse-button").focus();
+          return;
+        }
+        if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        app.intake.objectUrl = URL.createObjectURL(file);
+        app.intake.fixture = "custom";
+        app.intake.fileName = file.name;
+        app.intake.imageUrl = app.intake.objectUrl;
+        app.intake.arbitrary = true;
+        document.querySelectorAll("[data-fixture]").forEach(function (button) { button.setAttribute("aria-pressed", "false"); });
+        document.getElementById("custom-upload-note").hidden = false;
+        displayIntakeImage(app.intake.imageUrl, file.name, false);
+      }
+
+      function updateIntakeGate() {
+        var hasImage = Boolean(app.intake.imageUrl);
+        document.getElementById("submit-evaluation").disabled = !hasImage;
+        document.getElementById("submit-evaluation").textContent = "Start background evaluation";
+        document.getElementById("gate-copy").textContent = hasImage ? (app.intake.arbitrary ? "Ready to submit. Your image receives a simulated response (labelled demo fixtures) in a few seconds." : "Ready to submit. The demo evaluation completes in a few seconds.") : "Add an image to continue.";
+      }
+
+      function nextClaimId() {
+        var id = "";
+        do { id = "CLM-2026-" + String(app.nextClaimSequence++).padStart(5, "0"); } while (getClaim(id));
+        return id;
+      }
+
+      function resetIntake() {
+        clearIntakeImage();
+        document.getElementById("claim-id").value = nextClaimId();
+        document.getElementById("policy-id").value = "POL-804-291";
+        document.getElementById("vehicle").value = "Volkswagen Jetta Mk IV";
+        document.getElementById("incident").value = "Low-speed impact at the front-left corner; exterior damage reported.";
+        document.getElementById("agent-note").value = "";
+        app.intake.initialized = true;
+        updateIntakeGate();
+        saveState();
+      }
+
+      function openIntake(fresh) {
+        if (fresh || !app.intake.initialized) resetIntake();
+        showScreen("intake", "intake-title", "new");
+      }
+
+      function completeEvaluation(claim) {
+        if (!claim || claim.status !== "evaluating") return;
+        claim.queueView = { status: claim.status, evidence: claim.evidence, eligibility: claim.eligibility, assessmentOutcome: claim.assessmentOutcome, estimateState: claim.estimateState, reviewedEstimate: claim.reviewedEstimate, isNew: claim.isNew };
+        claim.evaluationCompletesAt = null;
+        if (claim.fixture === "poor") {
+          claim.status = "action-required";
+          claim.evidence = "Insufficient";
+          claim.eligibility = "Review needed";
+          claim.assessmentOutcome = "poor-evidence";
+          claim.assessment = null;
+          claim.estimateState = "none";
+        } else {
+          claim.status = "review-ready";
+          claim.evidence = "Adequate";
+          claim.eligibility = "Supported";
+          claim.assessmentOutcome = "supported";
+          claim.assessment = makeAssessment();
+          claim.evidenceReview = { decision: "pending", actor: "", timestamp: "" };
+          claim.estimateState = "proposed";
+        }
+        claim.isNew = true;
+        if (app.pendingQueueUpdates.indexOf(claim.id) === -1) app.pendingQueueUpdates.push(claim.id);
+        addAudit(claim, "Evaluation completed", claim.status === "review-ready" ? "A simulated draft is ready for agent evidence review." : "The system abstained and requires an agent decision.", { actor: "System" });
+        saveState();
+        if (app.screen === "queue") renderUpdateNotice();
+        showToast(claim.id + (claim.status === "review-ready" ? " is ready for review." : " requires an agent decision."));
+      }
+
+      function scheduleEvaluation(claim) {
+        if (!claim || claim.status !== "evaluating") return;
+        var remaining = Number(claim.evaluationCompletesAt) - Date.now();
+        if (!Number.isFinite(remaining) || remaining <= 0) {
+          completeEvaluation(claim);
+          return;
+        }
+        var timer = window.setTimeout(function () { completeEvaluation(getClaim(claim.id)); }, remaining);
+        app.timers.push(timer);
+      }
+
+      function renderActionRequired(claim) {
+        app.selectedClaimId = claim.id;
+        document.getElementById("action-title").textContent = "Needs your decision";
+        document.getElementById("action-lede").textContent = "The AI stopped without drafting findings or an estimate. Choose what happens next.";
+        var image = document.getElementById("action-image");
+        var missing = document.getElementById("action-image-missing");
+        if (claim.imageUrl) {
+          image.src = claim.imageUrl;
+          image.alt = "Submitted vehicle-damage evidence for claim " + claim.id;
+          image.hidden = false;
+          missing.hidden = true;
+          image.classList.add("is-poor");
+        } else {
+          image.hidden = true;
+          missing.hidden = false;
+        }
+        document.getElementById("action-image-name").textContent = claim.imageName || "Submitted evidence";
+        document.getElementById("action-image-description").textContent = "Submitted evidence · automated check: insufficient";
+        showScreen("action", "action-title", "claim/" + claim.id + "/action");
+      }
+
+      function setReviewEvidence(claim) {
+        document.getElementById("review-claim-id").textContent = claim.id;
+        var badge = document.getElementById("review-status-badge");
+        var returned = claim.status === "returned";
+        badge.textContent = returned ? "Returned by senior" : "Ready for review";
+        badge.className = "status-badge " + (returned ? "status-action" : "status-ready");
+        document.getElementById("returned-banner").hidden = !returned;
+        document.getElementById("returned-reason").textContent = returned ? (claim.returnReason || "See the audit trail for details.") + " — Adjust the affected findings (reopen, correct, or reject), then re-send the packet." : "";
+        document.getElementById("record-claim").textContent = claim.id;
+        document.getElementById("record-policy").textContent = claim.policy;
+        document.getElementById("record-vehicle").textContent = claim.vehicle;
+        document.getElementById("record-submitted").textContent = formatSubmitted(claim.submittedAt);
+        document.getElementById("record-incident").textContent = claim.incident;
+        var image = document.getElementById("review-image");
+        image.src = claim.imageUrl || SAMPLE_IMAGE;
+        image.alt = "Submitted vehicle-damage evidence for claim " + claim.id;
+        var fixtureNote = document.getElementById("fixture-note");
+        if (claim.arbitrary) {
+          fixtureNote.replaceChildren(element("strong", "", "Simulated response:"), document.createTextNode(claim.imageUrl
+            ? " these findings and the annotation are fixed demo fixtures — they were not derived from your uploaded image. The review workflow is real; the model output is not."
+            : " the custom image could not be restored after refresh (browser file data is not persisted), so the sample photo is shown. Findings are fixed demo fixtures."));
+        } else {
+          fixtureNote.replaceChildren(element("strong", "", "Simulated result:"), document.createTextNode(" findings for this sample are fixed demo data. The workflow is real; the model output is not."));
+        }
+        resetImageView();
+      }
+
+      function renderProgress(claim) {
+        var progress = assessmentProgress(claim);
+        var percent = progress.total ? Math.round((progress.resolved / progress.total) * 100) : 0;
+        document.getElementById("review-progress-label").textContent = progress.resolved + " of " + progress.total + " findings resolved";
+        document.getElementById("review-progress-status").textContent = progress.complete ? "All resolved — open the handoff packet" : "Decide each finding in turn";
+        document.getElementById("review-progress-fill").style.width = percent + "%";
+        document.getElementById("review-progress").setAttribute("aria-valuemax", String(progress.total));
+        document.getElementById("review-progress").setAttribute("aria-valuenow", String(progress.resolved));
+        var rail = document.getElementById("progress-rail");
+        rail.replaceChildren();
+        claim.assessment.findings.forEach(function (finding, index) {
+          var button = element("button", "progress-step");
+          button.type = "button";
+          button.setAttribute("data-finding-id", finding.id);
+          if (finding.id === app.activeFindingId) button.setAttribute("aria-current", "step");
+          button.appendChild(element("strong", "", (index + 1) + ". " + finding.component));
+          var mark = finding.decision === "rejected" ? "✕ " : (finding.decision === "pending" ? "" : "✓ ");
+          button.appendChild(element("span", "step-state " + finding.decision, mark + findingDecisionLabel(finding)));
+          rail.appendChild(button);
+        });
+        document.getElementById("review-packet").disabled = !progress.complete;
+        document.getElementById("action-progress").textContent = progress.complete ? "All findings decided — packet ready" : (progress.total - progress.resolved) + " finding" + (progress.total - progress.resolved === 1 ? "" : "s") + " left to review";
+      }
+
+      function renderSourceButtons(claim, finding) {
+        var row = document.getElementById("active-sources");
+        row.replaceChildren(element("span", "", "Supporting sources"));
+        var ids = (finding.sourceIds || []).slice();
+        if (finding.manualOperationSourceId) ids.push(finding.manualOperationSourceId);
+        if (finding.manualPriceSourceId) ids.push(finding.manualPriceSourceId);
+        ids.filter(function (id, index, list) { return list.indexOf(id) === index; }).forEach(function (id) {
+          var source = getSource(claim, id);
+          if (!source) return;
+          var button = element("button", "source-button", source.label || source.title);
+          button.type = "button";
+          button.setAttribute("data-source-id", id);
+          row.appendChild(button);
+        });
+      }
+
+      function diffText(finding) {
+        if (!finding.original) return "";
+        var changes = [];
+        [["Component", "component"], ["Observation", "observation"], ["Severity", "severity"], ["Operation", "operation"], ["Evidence", "evidence"]].forEach(function (pair) {
+          if (String(finding.original[pair[1]]) !== String(finding[pair[1]])) changes.push(pair[0] + ": “" + finding.original[pair[1]] + "” → “" + finding[pair[1]] + "”");
+        });
+        var oldTotal = Number(finding.original.parts) + Number(finding.original.hours) * Number(finding.original.rate);
+        var newTotal = lineTotal(finding);
+        if (Math.abs(oldTotal - newTotal) > .001) changes.push("Line total: " + money(oldTotal) + " → " + money(newTotal));
+        return changes.join(" · ");
+      }
+
+      function renderActiveFinding(claim) {
+        var findings = claim.assessment.findings;
+        var finding = getFinding(claim, app.activeFindingId) || findings[0];
+        if (!finding) return;
+        app.activeFindingId = finding.id;
+        var index = findings.indexOf(finding);
+        document.getElementById("active-origin").textContent = finding.origin === "ai" ? (finding.original ? "AI suggestion · corrected by agent" : "AI suggestion") : "Agent-added finding";
+        document.getElementById("active-origin").className = "origin-label " + (finding.origin === "ai" && !finding.original ? "origin-ai" : "origin-human");
+        document.getElementById("active-finding-title").textContent = "Finding " + (index + 1) + " of " + findings.length + " · " + finding.component;
+        document.getElementById("active-finding-observation").textContent = finding.observation;
+        var badge = document.getElementById("active-decision");
+        badge.textContent = findingDecisionLabel(finding);
+        badge.className = "decision-badge " + decisionClass(finding.decision);
+        document.getElementById("active-severity").textContent = finding.severity;
+        document.getElementById("active-operation").textContent = finding.operation;
+        document.getElementById("active-evidence").textContent = finding.evidence;
+        document.getElementById("active-rationale").textContent = finding.rationale || "Agent-authored finding based on the submitted evidence.";
+        document.getElementById("active-parts").textContent = money(finding.parts);
+        document.getElementById("active-labor").textContent = Number(finding.hours).toFixed(1) + "h × " + money(finding.rate);
+        document.getElementById("active-line-total").textContent = money(lineTotal(finding));
+        document.getElementById("active-limitation").textContent = finding.limitation || "Confirm that the evidence supports this finding and operation.";
+        renderSourceButtons(claim, finding);
+        var diff = diffText(finding);
+        var diffNode = document.getElementById("active-diff");
+        diffNode.hidden = !diff;
+        diffNode.replaceChildren();
+        if (diff) { diffNode.appendChild(element("strong", "", "Before → after: ")); diffNode.appendChild(document.createTextNode(diff)); }
+        var resolved = finding.decision !== "pending";
+        document.getElementById("confirm-finding").textContent = finding.original || finding.origin === "agent" ? "Reconfirm correction" : "Confirm";
+        document.getElementById("decision-actions").hidden = resolved;
+        document.getElementById("resolved-actions").hidden = !resolved;
+        document.getElementById("resolved-copy").textContent = resolved ? findingDecisionLabel(finding) + (finding.reason ? " · " + finding.reason : "") : "";
+        document.getElementById("finding-editor").hidden = true;
+        document.getElementById("reject-form").hidden = true;
+        document.getElementById("previous-finding").disabled = index <= 0;
+        document.getElementById("next-finding").disabled = index >= findings.length - 1;
+        renderProgress(claim);
+        renderEstimate(claim);
+        renderActivity(claim);
+      }
+
+      function renderEstimate(claim) {
+        var progress = assessmentProgress(claim);
+        document.getElementById("estimate-proposed").textContent = money(proposedTotal(claim));
+        document.getElementById("estimate-confirmed").textContent = money(confirmedTotal(claim));
+        document.getElementById("estimate-unresolved").textContent = String(progress.total - progress.resolved);
+        document.getElementById("confirmed-estimate-label").textContent = progress.complete ? "Reviewed estimate" : "Agent-confirmed subtotal";
+        document.getElementById("estimate-status-copy").textContent = progress.complete ? "All decisions complete" : "Still to decide";
+      }
+
+      function auditEventNode(claim, event) {
+        var item = element("li");
+        item.appendChild(element("strong", "", event.action));
+        item.appendChild(element("span", "", event.detail + " · " + formatTime(event.timestamp) + " · " + event.actor));
+        if (event.before && event.after) {
+          var changes = [];
+          ["decision", "component", "operation", "evidence"].forEach(function (key) {
+            if (event.before[key] !== undefined && event.after[key] !== undefined && String(event.before[key]) !== String(event.after[key])) changes.push(key + ": “" + event.before[key] + "” → “" + event.after[key] + "”");
+          });
+          if ([event.before.parts, event.before.hours, event.before.rate, event.after.parts, event.after.hours, event.after.rate].every(function (value) { return Number.isFinite(Number(value)); })) {
+            var beforeTotal = Number(event.before.parts) + Number(event.before.hours) * Number(event.before.rate);
+            var afterTotal = Number(event.after.parts) + Number(event.after.hours) * Number(event.after.rate);
+            if (Math.abs(beforeTotal - afterTotal) > .001) changes.push("line total: " + money(beforeTotal) + " → " + money(afterTotal));
+          }
+          if (changes.length) item.appendChild(element("span", "", "Recorded change · " + changes.join(" · ")));
+        }
+        if (event.sourceIds && event.sourceIds.length) {
+          var labels = event.sourceIds.map(function (id) { var source = getSource(claim, id); return source ? source.label : id; });
+          item.appendChild(element("span", "", "Support recorded · " + labels.join("; ")));
+        }
+        return item;
+      }
+
+      function renderActivity(claim) {
+        var list = document.getElementById("activity-list");
+        list.replaceChildren();
+        var events = (claim.audit || []).slice().reverse();
+        document.getElementById("activity-count").textContent = events.length + " event" + (events.length === 1 ? "" : "s");
+        if (!events.length) {
+          var empty = element("li", "", "No human review actions yet.");
+          list.appendChild(empty);
+          return;
+        }
+        events.forEach(function (event) { list.appendChild(auditEventNode(claim, event)); });
+      }
+
+      function renderGuidedReview(claim) {
+        var adequate = claim.evidenceReview && claim.evidenceReview.decision === "adequate";
+        document.getElementById("evidence-gate").hidden = adequate;
+        document.getElementById("guided-review").hidden = !adequate;
+        document.getElementById("toggle-overlay").disabled = !adequate;
+        if (adequate) {
+          var finding = getFinding(claim, app.activeFindingId) || claim.assessment.findings.find(function (item) { return item.decision === "pending"; }) || claim.assessment.findings[0];
+          app.activeFindingId = finding ? finding.id : "";
+          renderActiveFinding(claim);
+        }
+      }
+
+      function openReview(claim, findingId) {
+        if (!claim.assessment) claim.assessment = makeAssessment();
+        app.selectedClaimId = claim.id;
+        app.activeFindingId = findingId || app.activeFindingId || claim.assessment.findings[0].id;
+        claim.isNew = false;
+        setReviewEvidence(claim);
+        renderGuidedReview(claim);
+        saveState();
+        var evidenceAdequate = claim.evidenceReview && claim.evidenceReview.decision === "adequate";
+        showScreen("review", "review-title", evidenceAdequate ? "claim/" + claim.id + "/review/" + app.activeFindingId : "claim/" + claim.id + "/evidence");
+      }
+
+      function openEvidenceReview(claim) {
+        if (!claim.assessment) claim.assessment = makeAssessment();
+        app.selectedClaimId = claim.id;
+        app.activeFindingId = claim.assessment.findings[0].id;
+        claim.isNew = false;
+        setReviewEvidence(claim);
+        document.getElementById("evidence-gate").hidden = false;
+        document.getElementById("guided-review").hidden = true;
+        document.getElementById("toggle-overlay").disabled = true;
+        saveState();
+        showScreen("review", "review-title");
+      }
+
+      function openClaim(id) {
+        if (pendingUpdateGuard(id)) return;
+        var claim = getClaim(id);
+        if (!claim) return;
+        app.selectedClaimId = id;
+        if (claim.status === "review-ready" || claim.status === "returned") openReview(claim);
+        else if (claim.status === "action-required") renderActionRequired(claim);
+        else renderOutcome(claim);
+      }
+
+      function pendingUpdateGuard(id) {
+        if (app.pendingQueueUpdates.indexOf(id) === -1) return false;
+        openQueue("", true);
+        showToast("This claim just finished evaluating. Apply the queue update first.");
+        window.setTimeout(function () { document.getElementById("apply-queue-updates").focus(); }, 60);
+        return true;
+      }
+
+      function resetImageView() {
+        app.zoom = 1;
+        app.overlayVisible = false;
+        document.getElementById("image-stage").style.transform = "scale(1)";
+        document.getElementById("zoom-reset").textContent = "100%";
+        document.getElementById("zoom-reset").setAttribute("aria-label", "Reset zoom; current zoom 100 percent");
+        document.getElementById("region-box").classList.remove("is-visible");
+        document.getElementById("toggle-overlay").setAttribute("aria-pressed", "false");
+        document.getElementById("toggle-overlay").textContent = "Show AI annotation";
+        document.getElementById("review-image-description").textContent = "Original evidence shown without AI annotation.";
+      }
+
+      function changeZoom(delta) {
+        app.zoom = Math.max(1, Math.min(2.5, Math.round((app.zoom + delta) * 10) / 10));
+        document.getElementById("image-stage").style.transform = "scale(" + app.zoom + ")";
+        document.getElementById("zoom-reset").textContent = Math.round(app.zoom * 100) + "%";
+        document.getElementById("zoom-reset").setAttribute("aria-label", "Reset zoom; current zoom " + Math.round(app.zoom * 100) + " percent");
+      }
+
+      function toggleOverlay() {
+        if (document.getElementById("toggle-overlay").disabled) return;
+        app.overlayVisible = !app.overlayVisible;
+        document.getElementById("region-box").classList.toggle("is-visible", app.overlayVisible);
+        document.getElementById("toggle-overlay").setAttribute("aria-pressed", String(app.overlayVisible));
+        document.getElementById("toggle-overlay").textContent = app.overlayVisible ? "Hide AI annotation" : "Show AI annotation";
+        document.getElementById("review-image-description").textContent = app.overlayVisible ? "AI Region 1 highlights the left bumper seam. Verify against the photo — it is a suggestion, not a fact." : "Original evidence shown without AI annotation.";
+      }
+
+      function nextPendingFinding(claim, afterIndex) {
+        var findings = claim.assessment.findings;
+        var start = Number.isFinite(afterIndex) ? afterIndex + 1 : 0;
+        for (var offset = 0; offset < findings.length; offset += 1) {
+          var index = (start + offset) % findings.length;
+          if (findings[index].decision === "pending") return findings[index];
+        }
+        return null;
+      }
+
+      function selectFinding(claim, id, focus) {
+        if (!getFinding(claim, id)) return;
+        app.activeFindingId = id;
+        renderActiveFinding(claim);
+        updateHash("claim/" + claim.id + "/review/" + id);
+        if (focus) window.setTimeout(function () { document.getElementById("active-finding-title").focus(); }, 0);
+      }
+
+      function resolveFinding(claim, finding, decision, reason) {
+        var before = Object.assign(copyFinding(finding), { decision: finding.decision, reason: finding.reason || "" });
+        finding.decision = decision;
+        finding.reason = reason || "";
+        var after = Object.assign(copyFinding(finding), { decision: decision, reason: finding.reason });
+        var action = decision === "confirmed" ? "Finding confirmed" : (decision === "corrected" ? "Correction reconfirmed" : "Finding rejected");
+        addAudit(claim, action, finding.component + (finding.reason ? " · Reason: " + finding.reason : ""), { findingId: finding.id, before: before, after: after, reason: finding.reason || "", sourceIds: (finding.sourceIds || []).concat([finding.manualOperationSourceId, finding.manualPriceSourceId].filter(Boolean)) });
+        saveState();
+        var currentIndex = claim.assessment.findings.indexOf(finding);
+        var next = nextPendingFinding(claim, currentIndex);
+        if (next) app.activeFindingId = next.id;
+        renderActiveFinding(claim);
+        updateHash("claim/" + claim.id + "/review/" + app.activeFindingId);
+        window.setTimeout(function () {
+          var progress = assessmentProgress(claim);
+          document.getElementById(progress.complete ? "review-packet" : "active-finding-title").focus();
+        }, 0);
+        showToast(decision === "confirmed" ? "Confirmed — next unresolved finding loaded." : (decision === "corrected" ? "Correction reconfirmed — next unresolved finding loaded." : "Suggestion rejected and preserved in the trace."));
+      }
+
+      var FINDING_FIELD_IDS = ["edit-component", "edit-severity", "edit-observation", "edit-operation", "edit-evidence", "edit-parts", "edit-hours", "edit-rate", "edit-reason", "edit-operation-source", "edit-price-source"];
+
+      function clearFindingValidation() {
+        document.getElementById("finding-error").hidden = true;
+        FINDING_FIELD_IDS.forEach(function (id) { document.getElementById(id).removeAttribute("aria-invalid"); });
+      }
+
+      function showFindingValidation(message, ids) {
+        var error = document.getElementById("finding-error");
+        error.textContent = message;
+        error.hidden = false;
+        ids.forEach(function (id) { document.getElementById(id).setAttribute("aria-invalid", "true"); });
+        if (ids.length) document.getElementById(ids[0]).focus();
+      }
+
+      function openEditor(mode) {
+        var claim = getClaim(app.selectedClaimId);
+        var finding = mode === "add" ? null : getFinding(claim, app.activeFindingId);
+        app.editorMode = mode;
+        document.getElementById("editor-title").textContent = mode === "add" ? "Add and confirm agent finding" : "Correct and confirm finding";
+        document.getElementById("edit-component").value = finding ? finding.component : "";
+        document.getElementById("edit-severity").value = finding ? finding.severity : "Moderate";
+        document.getElementById("edit-observation").value = finding ? finding.observation : "";
+        document.getElementById("edit-operation").value = finding ? finding.operation : "";
+        document.getElementById("edit-evidence").value = finding ? finding.evidence : "Region 1";
+        document.getElementById("edit-parts").value = finding ? Number(finding.parts).toFixed(2) : "0.00";
+        document.getElementById("edit-hours").value = finding ? Number(finding.hours).toFixed(1) : "0.0";
+        document.getElementById("edit-rate").value = finding ? Number(finding.rate).toFixed(2) : "58.00";
+        document.getElementById("edit-reason").value = "";
+        document.getElementById("edit-operation-source").value = "";
+        document.getElementById("edit-price-source").value = "";
+        var before = document.getElementById("editor-before");
+        before.hidden = !finding;
+        before.replaceChildren();
+        if (finding) {
+          before.appendChild(element("strong", "", "Before editing: "));
+          before.appendChild(document.createTextNode(finding.component + " · " + finding.operation + " · " + money(lineTotal(finding))));
+        }
+        clearFindingValidation();
+        document.getElementById("finding-editor").hidden = false;
+        document.getElementById("reject-form").hidden = true;
+        document.getElementById("edit-component").focus();
+      }
+
+      function addManualSource(claim, finding, kind, note) {
+        var suffix = finding.id.replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase();
+        var id = (kind === "operation" ? "AR" : "AP") + suffix + "-" + Date.now().toString(36).toUpperCase();
+        var source = { id: id, label: kind === "operation" ? "Agent repair support" : "Agent price support", kind: "Agent source", title: kind === "operation" ? "Agent-provided repair-operation support" : "Agent-provided pricing support", version: "Current review session", locator: "Manual override note", excerpt: note, retrievedAt: formatSubmitted(nowIso()), supports: kind === "operation" ? "Current repair or inspection operation" : "Current parts, labor hours, and labor rate", simulated: false };
+        claim.assessment.sources.push(source);
+        if (kind === "operation") finding.manualOperationSourceId = id;
+        else finding.manualPriceSourceId = id;
+      }
+
+      function saveFinding(event) {
+        event.preventDefault();
+        if (app.decisionLocked) return;
+        var claim = getClaim(app.selectedClaimId);
+        var existing = app.editorMode === "add" ? null : getFinding(claim, app.activeFindingId);
+        var values = {
+          component: document.getElementById("edit-component").value.trim(),
+          severity: document.getElementById("edit-severity").value,
+          observation: document.getElementById("edit-observation").value.trim(),
+          operation: document.getElementById("edit-operation").value.trim(),
+          evidence: document.getElementById("edit-evidence").value.trim(),
+          partsRaw: document.getElementById("edit-parts").value.trim(),
+          hoursRaw: document.getElementById("edit-hours").value.trim(),
+          rateRaw: document.getElementById("edit-rate").value.trim(),
+          reason: document.getElementById("edit-reason").value,
+          operationSource: document.getElementById("edit-operation-source").value.trim(),
+          priceSource: document.getElementById("edit-price-source").value.trim()
+        };
+        values.parts = Number(values.partsRaw);
+        values.hours = Number(values.hoursRaw);
+        values.rate = Number(values.rateRaw);
+        clearFindingValidation();
+        var missing = [];
+        if (!values.component) missing.push("edit-component");
+        if (!values.observation) missing.push("edit-observation");
+        if (!values.operation) missing.push("edit-operation");
+        if (!values.evidence) missing.push("edit-evidence");
+        if (!values.reason) missing.push("edit-reason");
+        if (missing.length) {
+          showFindingValidation("Complete the finding, evidence reference, and correction reason.", missing);
+          return;
+        }
+        if (!values.partsRaw || !values.hoursRaw || !values.rateRaw || ![values.parts, values.hours, values.rate].every(Number.isFinite) || values.parts < 0 || values.parts > 100000 || values.hours < 0 || values.hours > 100 || values.rate < 0 || values.rate > 10000) {
+          showFindingValidation("Enter valid non-negative cost values within the displayed limits.", ["edit-parts", "edit-hours", "edit-rate"]);
+          return;
+        }
+        var precisionFields = [];
+        if (Math.abs(values.parts * 100 - Math.round(values.parts * 100)) > .000001) precisionFields.push("edit-parts");
+        if (Math.abs(values.hours * 10 - Math.round(values.hours * 10)) > .000001) precisionFields.push("edit-hours");
+        if (Math.abs(values.rate * 100 - Math.round(values.rate * 100)) > .000001) precisionFields.push("edit-rate");
+        if (precisionFields.length) {
+          showFindingValidation("Use no more than two decimal places for currency and one decimal place for labor hours.", precisionFields);
+          return;
+        }
+        values.parts = Math.round(values.parts * 100) / 100;
+        values.hours = Math.round(values.hours * 10) / 10;
+        values.rate = Math.round(values.rate * 100) / 100;
+        var operationChanged = !existing || values.operation !== existing.operation;
+        var priceChanged = !existing || Math.abs(values.parts - existing.parts) > .001 || Math.abs(values.hours - existing.hours) > .001 || Math.abs(values.rate - existing.rate) > .001;
+        var hasNonZeroCost = values.parts > 0 || values.hours > 0;
+        if (operationChanged && !values.operationSource) {
+          showFindingValidation("Add repair-operation support for a changed or agent-added operation.", ["edit-operation-source"]);
+          return;
+        }
+        if (priceChanged && hasNonZeroCost && !values.priceSource) {
+          showFindingValidation("Add price or rate support for changed or agent-added cost inputs.", ["edit-price-source"]);
+          return;
+        }
+
+        app.decisionLocked = true;
+        document.getElementById("save-finding").disabled = true;
+
+        var finding;
+        var before;
+        if (existing) {
+          finding = existing;
+          before = copyFinding(finding);
+          if (!finding.original) finding.original = copyFinding(finding);
+          Object.assign(finding, { component: values.component, severity: values.severity, observation: values.observation, operation: values.operation, evidence: values.evidence, parts: values.parts, hours: values.hours, rate: values.rate, decision: "corrected", reason: values.reason });
+        } else {
+          finding = makeFinding({ id: "finding-agent-" + Date.now(), origin: "agent", component: values.component, severity: values.severity, observation: values.observation, operation: values.operation, evidence: values.evidence, rationale: "Agent-authored finding based on the submitted evidence.", limitation: "Confirm that downstream review receives the supporting evidence and sources.", parts: values.parts, hours: values.hours, rate: values.rate, sourceIds: [], decision: "corrected", reason: values.reason });
+          finding.proposed = null;
+          claim.assessment.findings.push(finding);
+          before = null;
+        }
+        if (values.operationSource) addManualSource(claim, finding, "operation", values.operationSource);
+        if (values.priceSource) addManualSource(claim, finding, "price", values.priceSource);
+        addAudit(claim, existing ? "Finding corrected and confirmed" : "Agent finding added and confirmed", finding.component + " · Reason: " + values.reason, { findingId: finding.id, before: before, after: copyFinding(finding), reason: values.reason, sourceIds: [finding.manualOperationSourceId, finding.manualPriceSourceId].filter(Boolean) });
+        app.activeFindingId = finding.id;
+        saveState();
+        document.getElementById("finding-editor").hidden = true;
+        var currentIndex = claim.assessment.findings.indexOf(finding);
+        var next = nextPendingFinding(claim, currentIndex);
+        if (next) app.activeFindingId = next.id;
+        renderActiveFinding(claim);
+        updateHash("claim/" + claim.id + "/review/" + app.activeFindingId);
+        window.setTimeout(function () {
+          var progress = assessmentProgress(claim);
+          document.getElementById(progress.complete ? "review-packet" : "active-finding-title").focus();
+        }, 0);
+        window.setTimeout(function () { app.decisionLocked = false; document.getElementById("save-finding").disabled = false; }, 450);
+        showToast(existing ? "Correction saved and confirmed." : "Agent finding added and confirmed.");
+      }
+
+      function openRejectForm() {
+        document.getElementById("reject-reason").value = "";
+        document.getElementById("reject-reason").removeAttribute("aria-invalid");
+        document.getElementById("reject-error").hidden = true;
+        document.getElementById("finding-editor").hidden = true;
+        document.getElementById("reject-form").hidden = false;
+        document.getElementById("reject-reason").focus();
+      }
+
+      function rejectFinding(event) {
+        event.preventDefault();
+        if (app.decisionLocked) return;
+        var reason = document.getElementById("reject-reason").value.trim();
+        if (!reason) {
+          document.getElementById("reject-error").hidden = false;
+          document.getElementById("reject-reason").setAttribute("aria-invalid", "true");
+          document.getElementById("reject-reason").focus();
+          return;
+        }
+        document.getElementById("reject-reason").removeAttribute("aria-invalid");
+        app.decisionLocked = true;
+        document.getElementById("reject-and-preserve").disabled = true;
+        var claim = getClaim(app.selectedClaimId);
+        var finding = getFinding(claim, app.activeFindingId);
+        resolveFinding(claim, finding, "rejected", reason);
+        window.setTimeout(function () { app.decisionLocked = false; document.getElementById("reject-and-preserve").disabled = false; }, 450);
+      }
+
+      function reopenFinding() {
+        var claim = getClaim(app.selectedClaimId);
+        var finding = getFinding(claim, app.activeFindingId);
+        var prior = finding.decision;
+        finding.decision = "pending";
+        if (prior === "rejected") finding.reason = "";
+        addAudit(claim, "Finding reopened", finding.component + " requires a new human decision.", { findingId: finding.id, before: { decision: prior }, after: { decision: "pending" } });
+        saveState();
+        renderActiveFinding(claim);
+        window.setTimeout(function () { document.getElementById("confirm-finding").focus(); }, 0);
+        showToast("Finding reopened for review.");
+      }
+
+      function openSourceDialog(sourceId, trigger) {
+        var claim = getClaim(app.selectedClaimId);
+        var source = getSource(claim, sourceId);
+        if (!source) return;
+        app.sourceTrigger = trigger || document.activeElement;
+        document.getElementById("source-dialog-title").textContent = source.label || source.title;
+        document.getElementById("source-dialog-meta").textContent = source.kind + " · " + source.version + " · " + source.locator + " · Retrieved " + source.retrievedAt;
+        document.getElementById("source-dialog-excerpt").textContent = source.excerpt;
+        document.getElementById("source-dialog-support").textContent = "Supports: " + source.supports;
+        document.getElementById("source-dialog-fixture").textContent = source.simulated ? "This is a simulated source fixture, not a licensed manual or pricebook." : "This support was entered by the agent during the current review session.";
+        document.getElementById("source-dialog").showModal();
+        document.querySelector("#source-dialog [data-close-dialog]").focus();
+      }
+
+      function openEvidenceDialog() {
+        app.dialogTrigger = document.activeElement;
+        document.querySelectorAll('input[name="evidence-view"]').forEach(function (input, index) { input.checked = index < 2; input.removeAttribute("aria-invalid"); });
+        document.getElementById("evidence-error").hidden = true;
+        document.getElementById("evidence-dialog").showModal();
+        window.setTimeout(function () { document.querySelector('input[name="evidence-view"]').focus(); }, 0);
+      }
+
+      function openManualDialog() {
+        app.dialogTrigger = document.activeElement;
+        document.getElementById("manual-reason").value = "";
+        document.getElementById("manual-reason").removeAttribute("aria-invalid");
+        document.getElementById("manual-note").value = "";
+        document.getElementById("manual-error").hidden = true;
+        document.getElementById("manual-dialog").showModal();
+        window.setTimeout(function () { document.getElementById("manual-reason").focus(); }, 0);
+      }
+
+      function routeClaim(status, detail) {
+        var claim = getClaim(app.selectedClaimId);
+        claim.status = status;
+        if (status === "needs-evidence") {
+          claim.previousEvidenceState = claim.evidence;
+          claim.evidence = "More evidence requested";
+          claim.evidenceReview = { decision: "requested", actor: "Agent", timestamp: nowIso() };
+        }
+        if (status === "manual-review") claim.evidenceReview = { decision: "escalated", actor: "Agent", timestamp: nowIso() };
+        saveState();
+        renderOutcome(claim);
+        showToast(detail);
+      }
+
+      function renderHandoff(claim) {
+        var progress = assessmentProgress(claim);
+        if (!progress.complete) { openReview(claim); return; }
+        app.selectedClaimId = claim.id;
+        var sent = claim.status === "senior-review";
+        var authorized = claim.status === "authorized";
+        var returned = claim.status === "returned";
+        document.getElementById("handoff-title").textContent = authorized ? "Authorized senior packet" : (sent ? "Senior handoff packet" : "Review senior handoff packet");
+        document.getElementById("back-to-findings").textContent = sent || authorized ? "← Back to claim status" : "← Back to findings";
+        var send = document.getElementById("send-to-senior");
+        send.disabled = sent || authorized;
+        send.textContent = authorized ? "Repairs authorized" : (sent ? "Packet sent to senior adjuster" : (returned ? "Re-send to senior adjuster" : "Send to senior adjuster"));
+        document.getElementById("handoff-request").disabled = sent || authorized;
+        document.getElementById("handoff-escalate").disabled = sent || authorized;
+        document.getElementById("senior-decision-panel").hidden = !(sent || authorized);
+        document.getElementById("senior-decision-actions").hidden = !sent;
+        document.getElementById("senior-return-form").hidden = true;
+        document.getElementById("senior-return-reason").value = "";
+        document.getElementById("senior-return-reason").removeAttribute("aria-invalid");
+        document.getElementById("senior-return-error").hidden = true;
+        var seniorNote = document.getElementById("senior-decision-note");
+        seniorNote.hidden = !authorized;
+        seniorNote.textContent = authorized && claim.seniorDecision ? "Repairs authorized by the senior adjuster at " + formatTime(claim.seniorDecision.timestamp) + ". Payment and coverage remain out of scope." : "";
+        var confirmed = claim.assessment.findings.filter(function (finding) { return finding.decision === "confirmed"; }).length;
+        var corrected = claim.assessment.findings.filter(function (finding) { return finding.decision === "corrected"; }).length;
+        var rejected = claim.assessment.findings.filter(function (finding) { return finding.decision === "rejected"; }).length;
+        var manualSourceItems = claim.assessment.sources.filter(function (source) { return !source.simulated; });
+        var manualSources = manualSourceItems.length;
+        document.getElementById("packet-confirmed").textContent = confirmed;
+        document.getElementById("packet-corrected").textContent = corrected;
+        document.getElementById("packet-rejected").textContent = rejected;
+        document.getElementById("packet-sources").textContent = manualSources;
+        document.getElementById("packet-source-summary").textContent = manualSources ? "Agent-provided support: " + manualSourceItems.map(function (source) { return source.label; }).join("; ") : "No agent-provided source changes; the packet retains the labeled demo fixtures.";
+        var list = document.getElementById("packet-findings");
+        list.replaceChildren();
+        claim.assessment.findings.forEach(function (finding) {
+          var item = element("li", "packet-finding");
+          var copy = element("div");
+          copy.appendChild(element("strong", "", finding.component));
+          copy.appendChild(element("p", "", (finding.origin === "ai" ? "AI-proposed" : "Agent-added") + " · " + findingDecisionLabel(finding) + " · " + finding.operation + " · Evidence: " + finding.evidence + (finding.reason ? " · Reason: " + finding.reason : "")));
+          var diff = diffText(finding);
+          if (diff) {
+            var beforeAfter = element("p");
+            beforeAfter.appendChild(element("strong", "", "AI original → agent final: "));
+            beforeAfter.appendChild(document.createTextNode(diff));
+            copy.appendChild(beforeAfter);
+          }
+          if (finding.decision === "rejected" && finding.proposed) {
+            var proposedLine = Number(finding.proposed.parts) + Number(finding.proposed.hours) * Number(finding.proposed.rate);
+            copy.appendChild(element("p", "", "Original AI proposal preserved in trace: " + finding.proposed.operation + " · " + money(proposedLine)));
+          }
+          item.appendChild(copy);
+          item.appendChild(element("strong", "numeric", finding.decision === "rejected" ? "Excluded" : money(lineTotal(finding))));
+          list.appendChild(item);
+        });
+        var auditList = document.getElementById("packet-audit-list");
+        auditList.replaceChildren();
+        var events = (claim.audit || []).slice();
+        document.getElementById("packet-audit-count").textContent = events.length + " event" + (events.length === 1 ? "" : "s");
+        if (events.length) events.forEach(function (event) { auditList.appendChild(auditEventNode(claim, event)); });
+        else auditList.appendChild(element("li", "", "No audit events were recorded for this claim."));
+        var proposed = proposedTotal(claim);
+        var reviewed = confirmedTotal(claim);
+        document.getElementById("packet-total").textContent = money(reviewed);
+        var delta = reviewed - proposed;
+        document.getElementById("packet-delta").textContent = "AI-proposed " + money(proposed) + " · Agent change " + (delta >= 0 ? "+" : "") + money(delta);
+        showScreen("handoff", "handoff-title", "claim/" + claim.id + "/handoff");
+      }
+
+      function renderOutcome(claim) {
+        app.selectedClaimId = claim.id;
+        var heading = "";
+        var copy = "";
+        var bannerClass = "neutral";
+        if (claim.status === "needs-evidence") {
+          heading = "Evidence request confirmed";
+          copy = "The claim is paused until the requested images arrive. No repair or payment decision was made.";
+          bannerClass = "warning";
+        } else if (claim.status === "manual-review") {
+          heading = "Routed to senior manual review";
+          copy = "A senior adjuster now owns this assessment. No AI recommendation will be created or authorized.";
+        } else if (claim.status === "senior-review") {
+          heading = "Packet sent for senior authorization";
+          copy = "The reviewed findings, sources, limitations, and agent trace are attached. Repair and payment remain unauthorized until the senior adjuster decides.";
+          bannerClass = "success";
+        } else if (claim.status === "authorized") {
+          heading = "Repairs authorized by the senior adjuster";
+          copy = "The senior adjuster reviewed the packet and full audit trail and authorized repairs at an approved shop. Payment, coverage, and liability decisions remain out of scope.";
+          bannerClass = "success";
+        } else if (claim.status === "returned") {
+          heading = "Returned by the senior adjuster";
+          copy = "The packet was not authorized. Reason: " + (claim.returnReason || "see the audit trail") + ". Reopen or correct the affected findings, then re-send the packet.";
+          bannerClass = "warning";
+        } else if (claim.status === "evaluating") {
+          heading = "Evaluation running in the background";
+          copy = "Return to the queue and continue other work. Apply the queue update when the evaluation completes.";
+        }
+        document.getElementById("outcome-title").textContent = claim.id + " · Claim status";
+        document.getElementById("outcome-heading").textContent = heading;
+        document.getElementById("outcome-copy").textContent = copy;
+        document.getElementById("outcome-banner").className = "outcome-banner " + bannerClass;
+        var grid = document.getElementById("outcome-grid");
+        grid.replaceChildren();
+        [["Vehicle", claim.vehicle], ["Submitted", formatSubmitted(claim.submittedAt)], ["Evidence", claim.evidence], ["Next owner", nextOwner(claim)]].forEach(function (pair) {
+          var item = element("div");
+          item.appendChild(element("dt", "", pair[0]));
+          item.appendChild(element("dd", "", pair[1]));
+          grid.appendChild(item);
+        });
+        var details = document.getElementById("outcome-details");
+        details.replaceChildren();
+        if (claim.status === "needs-evidence" && claim.requestedViews && claim.requestedViews.length) {
+          var section = element("section", "inline-note");
+          section.appendChild(element("strong", "", "Requested views: "));
+          section.appendChild(document.createTextNode(claim.requestedViews.join("; ")));
+          details.appendChild(section);
+        }
+        if ((claim.status === "senior-review" || claim.status === "authorized" || claim.status === "returned") && claim.assessment) {
+          var packet = element("section", "inline-note");
+          packet.appendChild(element("strong", "", "Reviewed packet: "));
+          packet.appendChild(document.createTextNode(assessmentProgress(claim).resolved + " findings resolved · " + money(confirmedTotal(claim)) + " reviewed estimate · " + (claim.status === "authorized" ? "repairs authorized" : (claim.status === "returned" ? "returned for agent rework" : "senior decision pending"))));
+          details.appendChild(packet);
+        }
+        var canViewPacket = (claim.status === "senior-review" || claim.status === "authorized" || claim.status === "returned") && claim.assessment && assessmentProgress(claim).complete;
+        document.getElementById("outcome-view-packet").hidden = !canViewPacket;
+        document.getElementById("outcome-view-packet").textContent = claim.status === "senior-review" ? "Open packet (senior decision)" : "View packet";
+        showScreen("outcome", "outcome-title", "claim/" + claim.id + "/status");
+      }
+
+      function resetDemo() {
+        if (!window.confirm("Reset all demo changes and restore the seeded claims?")) return;
+        app.timers.forEach(function (timer) { window.clearTimeout(timer); });
+        app.timers = [];
+        claims.forEach(function (claim) { if (claim.objectUrl) URL.revokeObjectURL(claim.objectUrl); });
+        if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        sessionStorage.removeItem(STORAGE_KEY);
+        claims = seedClaims();
+        Object.assign(app, { selectedClaimId: "", activeFindingId: "", queueSort: "submitted-asc", statusFilter: "all", search: "", nextClaimSequence: 4189, pendingQueueUpdates: [], zoom: 1, overlayVisible: false, decisionLocked: false, sourceTrigger: null, dialogTrigger: null, intake: { initialized: false, fixture: "", fileName: "", imageUrl: "", objectUrl: "", arbitrary: false } });
+        document.getElementById("queue-search").value = "";
+        document.getElementById("status-filter").value = "all";
+        document.getElementById("queue-sort").value = "submitted-asc";
+        claims.filter(function (claim) { return claim.status === "evaluating"; }).forEach(scheduleEvaluation);
+        saveState();
+        openQueue();
+        showToast("Demo reset to the original seeded state.");
+      }
+
+      function handleHash() {
+        var value = window.location.hash.replace(/^#/, "") || "queue";
+        if (value === "queue") { openQueue(); return; }
+        if (value === "new") { openIntake(false); return; }
+        var parts = value.split("/");
+        if (parts[0] !== "claim" || !parts[1]) { openQueue(); return; }
+        var claim = getClaim(parts[1]);
+        if (!claim) { openQueue(); return; }
+        if (pendingUpdateGuard(claim.id)) return;
+        if (parts[2] === "evidence" && claim.status === "review-ready") { openEvidenceReview(claim); return; }
+        if (parts[2] === "review" && (claim.status === "review-ready" || claim.status === "returned")) { openReview(claim, parts[3]); return; }
+        if (parts[2] === "handoff" && (claim.status === "review-ready" || claim.status === "senior-review" || claim.status === "returned" || claim.status === "authorized")) { renderHandoff(claim); return; }
+        if (parts[2] === "action" && claim.status === "action-required") { renderActionRequired(claim); return; }
+        openClaim(claim.id);
+      }
+
+      document.getElementById("product-home").addEventListener("click", function () { openQueue(); });
+      document.getElementById("claims-nav").addEventListener("click", function () { openQueue(); });
+      document.getElementById("new-assessment").addEventListener("click", function () { openIntake(true); });
+      document.getElementById("outcome-new").addEventListener("click", function () { openIntake(true); });
+      document.getElementById("outcome-view-packet").addEventListener("click", function () { renderHandoff(getClaim(app.selectedClaimId)); });
+      document.getElementById("reset-demo").addEventListener("click", resetDemo);
+      document.querySelectorAll("[data-back-to-queue]").forEach(function (button) { button.addEventListener("click", function () { openQueue(app.selectedClaimId); }); });
+
+      document.querySelectorAll("[data-summary-filter]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var selected = button.getAttribute("data-summary-filter");
+          app.statusFilter = app.statusFilter === selected ? "all" : selected;
+          document.getElementById("status-filter").value = app.statusFilter;
+          saveState();
+          renderQueue();
+        });
+      });
+      document.getElementById("queue-search").addEventListener("input", function () { app.search = this.value; renderQueue(); });
+      document.getElementById("status-filter").addEventListener("change", function () { app.statusFilter = this.value; saveState(); renderQueue(); });
+      document.getElementById("queue-sort").addEventListener("change", function () { app.queueSort = this.value; saveState(); renderQueue(); });
+      document.getElementById("claims-list").addEventListener("click", function (event) {
+        var button = event.target.closest("[data-open-claim]");
+        if (!button) return;
+        var id = button.getAttribute("data-open-claim");
+        if (pendingUpdateGuard(id)) return;
+        openClaim(id);
+      });
+      document.getElementById("apply-queue-updates").addEventListener("click", function () {
+        app.pendingQueueUpdates.forEach(function (id) {
+          var claim = getClaim(id);
+          if (claim) { delete claim.queueView; claim.isNew = true; }
+        });
+        app.pendingQueueUpdates = [];
+        saveState();
+        renderQueue();
+        showToast("Queue updates applied.");
+      });
+
+      document.getElementById("browse-button").addEventListener("click", function () { document.getElementById("damage-input").click(); });
+      document.getElementById("damage-input").addEventListener("change", function () { if (this.files && this.files[0]) useLocalFile(this.files[0]); });
+      document.getElementById("remove-image").addEventListener("click", clearIntakeImage);
+      document.querySelectorAll("[data-fixture]").forEach(function (button) { button.addEventListener("click", function () { selectFixture(button.getAttribute("data-fixture")); }); });
+      var dropZone = document.getElementById("drop-zone");
+      dropZone.addEventListener("dragover", function (event) { event.preventDefault(); dropZone.classList.add("is-dragging"); });
+      dropZone.addEventListener("dragleave", function () { dropZone.classList.remove("is-dragging"); });
+      dropZone.addEventListener("drop", function (event) { event.preventDefault(); dropZone.classList.remove("is-dragging"); if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) useLocalFile(event.dataTransfer.files[0]); });
+      document.getElementById("intake-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        if (document.getElementById("submit-evaluation").disabled) return;
+        var isCustom = app.intake.arbitrary;
+        var claim = { id: document.getElementById("claim-id").value.trim(), policy: document.getElementById("policy-id").value.trim(), vehicle: document.getElementById("vehicle").value.trim(), incident: document.getElementById("incident").value.trim(), submittedAt: nowIso(), status: "evaluating", evidence: "Pending", eligibility: "Pending", assessmentOutcome: "", imageName: app.intake.fileName, imageUrl: app.intake.imageUrl, arbitrary: isCustom, assessment: null, evidenceReview: { decision: "pending", actor: "", timestamp: "" }, audit: [], estimateState: "none", agentNote: document.getElementById("agent-note").value.trim(), evaluationCompletesAt: Date.now() + 3200, fixture: app.intake.fixture, isNew: true };
+        if (app.intake.objectUrl) { claim.objectUrl = app.intake.objectUrl; app.intake.objectUrl = ""; }
+        claims.push(claim);
+        app.intake.initialized = false;
+        app.statusFilter = "all";
+        app.search = "";
+        document.getElementById("status-filter").value = "all";
+        document.getElementById("queue-search").value = "";
+        addAudit(claim, "Assessment submitted", isCustom ? "Custom image submitted for a simulated evaluation. The response will use labelled demo fixtures, not live inference." : "Named sample submitted for simulated evaluation.", { actor: "Agent" });
+        saveState();
+        scheduleEvaluation(claim);
+        openQueue(claim.id);
+        showToast(claim.id + " submitted. Evaluation is running in the background.");
+      });
+
+      document.getElementById("action-request-evidence").addEventListener("click", openEvidenceDialog);
+      document.getElementById("action-manual-review").addEventListener("click", openManualDialog);
+
+      document.getElementById("evidence-adequate").addEventListener("click", function () {
+        var claim = getClaim(app.selectedClaimId);
+        var alreadyAdequate = claim.evidenceReview && claim.evidenceReview.decision === "adequate";
+        claim.evidenceReview = { decision: "adequate", actor: "Agent", timestamp: alreadyAdequate ? claim.evidenceReview.timestamp : nowIso() };
+        if (!alreadyAdequate) addAudit(claim, "Evidence judged adequate", "The agent inspected the original image before revealing AI assistance.");
+        saveState();
+        renderGuidedReview(claim);
+        updateHash("claim/" + claim.id + "/review/" + app.activeFindingId);
+        document.getElementById("toggle-overlay").focus();
+        showToast("Evidence accepted. AI assistance is now available.");
+      });
+      document.getElementById("evidence-request").addEventListener("click", openEvidenceDialog);
+      document.getElementById("evidence-escalate").addEventListener("click", openManualDialog);
+      document.getElementById("zoom-in").addEventListener("click", function () { changeZoom(.2); });
+      document.getElementById("zoom-out").addEventListener("click", function () { changeZoom(-.2); });
+      document.getElementById("zoom-reset").addEventListener("click", function () { app.zoom = 1; document.getElementById("image-stage").style.transform = "scale(1)"; document.getElementById("zoom-reset").textContent = "100%"; document.getElementById("zoom-reset").setAttribute("aria-label", "Reset zoom; current zoom 100 percent"); });
+      document.getElementById("toggle-overlay").addEventListener("click", toggleOverlay);
+      document.getElementById("progress-rail").addEventListener("click", function (event) { var button = event.target.closest("[data-finding-id]"); if (button) selectFinding(getClaim(app.selectedClaimId), button.getAttribute("data-finding-id"), true); });
+      document.getElementById("active-sources").addEventListener("click", function (event) { var button = event.target.closest("[data-source-id]"); if (button) openSourceDialog(button.getAttribute("data-source-id"), button); });
+      document.getElementById("confirm-finding").addEventListener("click", function () {
+        if (app.decisionLocked) return;
+        app.decisionLocked = true;
+        ["confirm-finding", "correct-finding", "reject-finding"].forEach(function (id) { document.getElementById(id).disabled = true; });
+        var claim = getClaim(app.selectedClaimId);
+        var finding = getFinding(claim, app.activeFindingId);
+        var decision = finding.original || finding.origin === "agent" ? "corrected" : "confirmed";
+        resolveFinding(claim, finding, decision, decision === "corrected" ? finding.reason : "");
+        window.setTimeout(function () {
+          app.decisionLocked = false;
+          ["confirm-finding", "correct-finding", "reject-finding"].forEach(function (id) { document.getElementById(id).disabled = false; });
+        }, 450);
+      });
+      document.getElementById("correct-finding").addEventListener("click", function () { openEditor("edit"); });
+      document.getElementById("reject-finding").addEventListener("click", openRejectForm);
+      document.getElementById("reopen-finding").addEventListener("click", reopenFinding);
+      document.getElementById("finding-editor").addEventListener("submit", saveFinding);
+      document.getElementById("cancel-editor").addEventListener("click", function () { document.getElementById("finding-editor").hidden = true; document.getElementById("correct-finding").focus(); });
+      document.getElementById("reject-form").addEventListener("submit", rejectFinding);
+      document.getElementById("cancel-reject").addEventListener("click", function () { document.getElementById("reject-form").hidden = true; document.getElementById("reject-finding").focus(); });
+      document.getElementById("add-finding").addEventListener("click", function () { openEditor("add"); });
+      document.getElementById("previous-finding").addEventListener("click", function () { var claim = getClaim(app.selectedClaimId); var index = claim.assessment.findings.findIndex(function (item) { return item.id === app.activeFindingId; }); if (index > 0) selectFinding(claim, claim.assessment.findings[index - 1].id, true); });
+      document.getElementById("next-finding").addEventListener("click", function () { var claim = getClaim(app.selectedClaimId); var index = claim.assessment.findings.findIndex(function (item) { return item.id === app.activeFindingId; }); if (index < claim.assessment.findings.length - 1) selectFinding(claim, claim.assessment.findings[index + 1].id, true); });
+      document.getElementById("next-unresolved").addEventListener("click", function () { var claim = getClaim(app.selectedClaimId); var current = claim.assessment.findings.findIndex(function (item) { return item.id === app.activeFindingId; }); var next = nextPendingFinding(claim, current); if (next) selectFinding(claim, next.id, true); else showToast("All findings have a human decision."); });
+      document.getElementById("request-evidence").addEventListener("click", openEvidenceDialog);
+      document.getElementById("escalate-claim").addEventListener("click", openManualDialog);
+      document.getElementById("review-packet").addEventListener("click", function () { renderHandoff(getClaim(app.selectedClaimId)); });
+
+      document.getElementById("back-to-findings").addEventListener("click", function () {
+        var claim = getClaim(app.selectedClaimId);
+        if (claim.status === "senior-review" || claim.status === "authorized") renderOutcome(claim);
+        else openReview(claim, app.activeFindingId);
+      });
+      document.getElementById("handoff-request").addEventListener("click", openEvidenceDialog);
+      document.getElementById("handoff-escalate").addEventListener("click", openManualDialog);
+      document.getElementById("send-to-senior").addEventListener("click", function () {
+        var claim = getClaim(app.selectedClaimId);
+        if (!assessmentProgress(claim).complete || claim.status === "senior-review" || claim.status === "authorized") return;
+        var resend = claim.status === "returned";
+        claim.status = "senior-review";
+        claim.estimateState = "reviewed";
+        claim.reviewedEstimate = confirmedTotal(claim);
+        addAudit(claim, resend ? "Senior handoff re-sent" : "Senior handoff created", resend ? "The agent addressed the senior's return and re-sent the packet. Repair and payment remain unauthorized." : "Every finding has an explicit human decision. Repair and payment remain unauthorized.");
+        saveState();
+        renderOutcome(claim);
+        showToast(claim.id + (resend ? " re-sent to the senior adjuster." : " sent to the senior adjuster."));
+      });
+
+      document.getElementById("senior-authorize").addEventListener("click", function () {
+        var claim = getClaim(app.selectedClaimId);
+        if (!claim || claim.status !== "senior-review") return;
+        claim.status = "authorized";
+        claim.seniorDecision = { decision: "authorized", reason: "", timestamp: nowIso() };
+        addAudit(claim, "Repairs authorized", "The senior adjuster reviewed the packet and full audit trail and authorized repairs at an approved shop. Payment and coverage remain out of scope.", { actor: "Senior adjuster" });
+        saveState();
+        renderOutcome(claim);
+        showToast(claim.id + " — repairs authorized by the senior adjuster.");
+      });
+      document.getElementById("senior-return").addEventListener("click", function () {
+        document.getElementById("senior-return-form").hidden = false;
+        document.getElementById("senior-return-reason").focus();
+      });
+      document.getElementById("cancel-senior-return").addEventListener("click", function () {
+        document.getElementById("senior-return-form").hidden = true;
+        document.getElementById("senior-return-reason").removeAttribute("aria-invalid");
+        document.getElementById("senior-return-error").hidden = true;
+        document.getElementById("senior-return").focus();
+      });
+      document.getElementById("senior-return-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var claim = getClaim(app.selectedClaimId);
+        if (!claim || claim.status !== "senior-review") return;
+        var reason = document.getElementById("senior-return-reason").value.trim();
+        if (!reason) {
+          document.getElementById("senior-return-error").hidden = false;
+          document.getElementById("senior-return-reason").setAttribute("aria-invalid", "true");
+          document.getElementById("senior-return-reason").focus();
+          return;
+        }
+        claim.status = "returned";
+        claim.returnReason = reason;
+        claim.seniorDecision = { decision: "returned", reason: reason, timestamp: nowIso() };
+        addAudit(claim, "Packet returned to agent", "Reason: " + reason, { actor: "Senior adjuster" });
+        saveState();
+        renderOutcome(claim);
+        showToast(claim.id + " returned to the agent by the senior adjuster.");
+      });
+
+      document.getElementById("evidence-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var selected = Array.prototype.slice.call(document.querySelectorAll('input[name="evidence-view"]:checked')).map(function (input) { return input.value; });
+        if (!selected.length) {
+          document.getElementById("evidence-error").hidden = false;
+          document.querySelectorAll('input[name="evidence-view"]').forEach(function (input) { input.setAttribute("aria-invalid", "true"); });
+          document.querySelector('input[name="evidence-view"]').focus();
+          return;
+        }
+        document.querySelectorAll('input[name="evidence-view"]').forEach(function (input) { input.removeAttribute("aria-invalid"); });
+        var claim = getClaim(app.selectedClaimId);
+        claim.requestedViews = selected;
+        addAudit(claim, "Evidence request confirmed", selected.join("; "));
+        app.dialogTrigger = null;
+        document.getElementById("evidence-dialog").close();
+        routeClaim("needs-evidence", claim.id + " is paused pending requested evidence.");
+      });
+      document.getElementById("manual-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var reason = document.getElementById("manual-reason").value;
+        var note = document.getElementById("manual-note").value.trim();
+        if (!reason) { document.getElementById("manual-error").hidden = false; document.getElementById("manual-reason").setAttribute("aria-invalid", "true"); document.getElementById("manual-reason").focus(); return; }
+        document.getElementById("manual-reason").removeAttribute("aria-invalid");
+        var claim = getClaim(app.selectedClaimId);
+        addAudit(claim, "Manual review route confirmed", reason + (note ? " · " + note : ""));
+        app.dialogTrigger = null;
+        document.getElementById("manual-dialog").close();
+        routeClaim("manual-review", claim.id + " routed to senior manual review.");
+      });
+
+      document.querySelectorAll("[data-close-dialog]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var dialog = document.getElementById(button.getAttribute("data-close-dialog"));
+          if (dialog.open) dialog.close();
+        });
+      });
+
+      document.getElementById("source-dialog").addEventListener("close", function () {
+        var trigger = app.sourceTrigger;
+        app.sourceTrigger = null;
+        if (trigger && document.contains(trigger)) window.setTimeout(function () { trigger.focus(); }, 0);
+      });
+      ["evidence-dialog", "manual-dialog"].forEach(function (id) {
+        document.getElementById(id).addEventListener("close", function () {
+          var trigger = app.dialogTrigger;
+          app.dialogTrigger = null;
+          if (trigger && document.contains(trigger)) window.setTimeout(function () { trigger.focus(); }, 0);
+        });
+      });
+
+      window.addEventListener("hashchange", handleHash);
+      window.addEventListener("popstate", handleHash);
+      window.addEventListener("beforeunload", function () {
+        if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        claims.forEach(function (claim) { if (claim.objectUrl) URL.revokeObjectURL(claim.objectUrl); });
+      });
+
+      if (!loadState()) {
+        claims = seedClaims();
+        saveState();
+      }
+      document.getElementById("queue-sort").value = app.queueSort;
+      document.getElementById("status-filter").value = app.statusFilter;
+      claims.filter(function (claim) { return claim.status === "evaluating"; }).forEach(scheduleEvaluation);
+      handleHash();
+    }());
+  </script>
+</body>
+</html>
