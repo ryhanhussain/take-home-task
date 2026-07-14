@@ -2,7 +2,7 @@
 
 A human-controlled prototype for reviewing visible vehicle damage. The AI proposes; the claims agent decides item by item; a senior adjuster authorises.
 
-**[Open the live prototype](https://ryhanhussain.github.io/take-home-task/)** · **[Read the two-page PRD](PRD.pdf)**
+**[Open the live prototype](https://ryhanhussain.github.io/take-home-task/)** · **[Read the PRD (Google Doc)](https://docs.google.com/document/d/17BsEC_Aq7gj0rohpaYU-ZVVV8U2NpkNz_uIdmduSflE/edit?usp=sharing)** · **[View the GitHub repository](https://github.com/ryhanhussain/take-home-task)**
 
 > This is a product prototype. The review workflow is functional; damage assessments, repair guidance, pricing, and source records are simulated fixtures.
 
@@ -48,9 +48,9 @@ Then open <http://localhost:8000>.
 |---|---|
 | `index.html` | Static, self-contained application code |
 | `assets/sample-a-bumper.jpg` | Public-domain sample claim image |
-| `PRD.pdf` | Two-page product requirements document |
+| `.nojekyll` | Serves the static files directly through GitHub Pages |
 
-The public repository intentionally contains only the submission artifacts needed to review and run the prototype.
+The PRD is shared separately as a Google Doc. The public repository intentionally contains only the files needed to review, run, and deploy the prototype.
 
 ## Image credit
 

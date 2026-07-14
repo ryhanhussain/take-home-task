@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Damage Review Copilot: an evidence-first, human-controlled vehicle damage review workbench for claims agents.">
+  <link rel="icon" href="data:,">
   <title>Damage Review Copilot</title>
   <style>
     :root {
@@ -42,6 +43,7 @@
     button, input, select, textarea { font: inherit; }
     button { color: inherit; }
     img { display: block; max-width: 100%; }
+    figure { margin: 0; }
     [hidden] { display: none !important; }
     a { color: var(--accent-dark); }
     h1, h2, h3, p { margin-top: 0; }
@@ -309,6 +311,7 @@
       background: #fff;
       color: var(--ink);
     }
+    .input[readonly] { background: var(--surface-subtle); color: var(--muted); }
     .textarea { min-height: 88px; resize: vertical; }
     .input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--danger); }
     .validation-error { margin: 0; color: var(--danger); font-size: 12px; font-weight: 700; }
@@ -820,13 +823,13 @@
             <header class="panel-header"><div><p class="page-kicker">Agent-entered intake</p><h2 id="claim-record-title">Claim details</h2></div><span class="origin-label">Not AI generated</span></header>
             <div class="panel-body">
               <div class="record-grid intake-record">
-                <label class="field"><span class="field-label">Claim reference</span><input class="input" id="claim-id" name="claim-reference" type="text" required autocomplete="off"></label>
-                <label class="field"><span class="field-label">Policy reference</span><input class="input" id="policy-id" name="policy-reference" type="text" required autocomplete="off"></label>
-                <label class="field field-wide"><span class="field-label">Vehicle</span><input class="input" id="vehicle" name="vehicle" type="text" required autocomplete="off"></label>
-                <label class="field field-wide"><span class="field-label">Incident summary</span><textarea class="textarea" id="incident" name="incident-summary" required aria-describedby="incident-hint"></textarea><span class="field-hint" id="incident-hint">Policyholder-reported context; not a verified fact.</span></label>
+                <label class="field"><span class="field-label">Claim reference</span><input class="input" id="claim-id" name="claim-reference" type="text" readonly aria-describedby="claim-id-hint"><span class="field-hint" id="claim-id-hint">Generated for this demo assessment.</span></label>
+                <label class="field"><span class="field-label">Policy reference</span><input class="input" id="policy-id" name="policy-reference" type="text" maxlength="40" required autocomplete="off"></label>
+                <label class="field field-wide"><span class="field-label">Vehicle</span><input class="input" id="vehicle" name="vehicle" type="text" maxlength="100" required autocomplete="off"></label>
+                <label class="field field-wide"><span class="field-label">Incident summary</span><textarea class="textarea" id="incident" name="incident-summary" maxlength="500" required aria-describedby="incident-hint"></textarea><span class="field-hint" id="incident-hint">Policyholder-reported context; not a verified fact.</span></label>
                 <div class="field field-wide"><span class="field-label">Pricing market</span><div class="market-metadata">Demo market · USD · Pricebook fixture v2026-Q2</div></div>
               </div>
-              <label class="field"><span class="field-label">Optional agent note</span><textarea class="textarea" id="agent-note" placeholder="Add relevant context for the assessment"></textarea></label>
+              <label class="field"><span class="field-label">Optional agent note</span><textarea class="textarea" id="agent-note" maxlength="500" placeholder="Add relevant context for the assessment"></textarea></label>
               <p class="scope-note"><strong>Scope:</strong> minor exterior damage on supported passenger vehicles. Structural, safety-system, total-loss, disputed, and unsupported cases go to a person.</p>
             </div>
           </section>
@@ -973,17 +976,17 @@
                   <p class="editor-intro">Saving logs the change, your reason, and any sources to the audit trail.</p>
                   <div class="before-after" id="editor-before">Original draft values will remain visible in the audit trace.</div>
                   <div class="editor-grid">
-                    <label class="field"><span class="field-label">Component / finding</span><input class="input" id="edit-component" required aria-describedby="finding-error"></label>
+                    <label class="field"><span class="field-label">Component / finding</span><input class="input" id="edit-component" maxlength="100" required aria-describedby="finding-error"></label>
                     <label class="field"><span class="field-label">Severity</span><select class="select" id="edit-severity" aria-describedby="finding-error"><option>Minor</option><option>Moderate</option><option>Severe</option><option>Uncertain</option><option>No visible damage</option></select></label>
-                    <label class="field field-wide"><span class="field-label">Visible observation</span><textarea class="textarea" id="edit-observation" required aria-describedby="finding-error"></textarea></label>
-                    <label class="field field-wide"><span class="field-label">Repair operation</span><input class="input" id="edit-operation" required aria-describedby="finding-error"></label>
-                    <label class="field field-wide"><span class="field-label">Photo reference</span><input class="input" id="edit-evidence" required aria-describedby="finding-error"><span class="field-hint">Required for every finding.</span></label>
+                    <label class="field field-wide"><span class="field-label">Visible observation</span><textarea class="textarea" id="edit-observation" maxlength="500" required aria-describedby="finding-error"></textarea></label>
+                    <label class="field field-wide"><span class="field-label">Repair operation</span><input class="input" id="edit-operation" maxlength="200" required aria-describedby="finding-error"></label>
+                    <label class="field field-wide"><span class="field-label">Photo reference</span><input class="input" id="edit-evidence" maxlength="200" required aria-describedby="finding-error"><span class="field-hint">Required for every finding.</span></label>
                     <label class="field"><span class="field-label">Parts / materials (USD)</span><input class="input" id="edit-parts" type="number" min="0" max="100000" step="0.01" required aria-describedby="finding-error"></label>
                     <label class="field"><span class="field-label">Labor hours</span><input class="input" id="edit-hours" type="number" min="0" max="100" step="0.1" required aria-describedby="finding-error"></label>
                     <label class="field"><span class="field-label">Labor rate (USD / hour)</span><input class="input" id="edit-rate" type="number" min="0" max="10000" step="0.01" required aria-describedby="finding-error"></label>
                     <label class="field"><span class="field-label">Correction reason</span><select class="select" id="edit-reason" required aria-describedby="finding-error"><option value="">Select a reason</option><option>Evidence supports a different finding</option><option>Component or damage corrected</option><option>Repair operation corrected</option><option>Cost updated from approved source</option><option>Agent identified an omitted finding</option><option>Other documented correction</option></select></label>
-                    <label class="field field-wide"><span class="field-label">Repair-operation support</span><textarea class="textarea" id="edit-operation-source" placeholder="Cite support — required when the operation changes" aria-describedby="finding-error"></textarea></label>
-                    <label class="field field-wide"><span class="field-label">Price / rate support</span><textarea class="textarea" id="edit-price-source" placeholder="Cite support — required when costs change" aria-describedby="finding-error"></textarea></label>
+                    <label class="field field-wide"><span class="field-label">Repair-operation support</span><textarea class="textarea" id="edit-operation-source" maxlength="500" placeholder="Cite support — required when the operation changes" aria-describedby="finding-error"></textarea></label>
+                    <label class="field field-wide"><span class="field-label">Price / rate support</span><textarea class="textarea" id="edit-price-source" maxlength="500" placeholder="Cite support — required when costs change" aria-describedby="finding-error"></textarea></label>
                   </div>
                   <p class="validation-error" id="finding-error" role="alert" hidden></p>
                   <div class="editor-actions"><button class="button button-secondary" id="cancel-editor" type="button">Cancel</button><button class="button button-primary" id="save-finding" type="submit">Save correction &amp; confirm</button></div>
@@ -991,7 +994,7 @@
 
                 <form class="inline-editor" id="reject-form" novalidate hidden>
                   <h3>Reject this suggestion</h3>
-                  <label class="field"><span class="field-label">Rejection reason</span><textarea class="textarea" id="reject-reason" placeholder="Explain why the suggestion is unsupported or out of scope" required aria-describedby="reject-error"></textarea></label>
+                  <label class="field"><span class="field-label">Rejection reason</span><textarea class="textarea" id="reject-reason" maxlength="500" placeholder="Explain why the suggestion is unsupported or out of scope" required aria-describedby="reject-error"></textarea></label>
                   <p class="validation-error" id="reject-error" role="alert" hidden></p>
                   <div class="editor-actions"><button class="button button-secondary" id="cancel-reject" type="button">Cancel</button><button class="button button-danger" id="reject-and-preserve" type="submit">Reject and preserve in trace</button></div>
                 </form>
@@ -1056,7 +1059,7 @@
                 <button class="button button-danger button-wide" id="senior-return" type="button">Return to agent</button>
               </div>
               <form class="inline-editor" id="senior-return-form" novalidate hidden>
-                <label class="field"><span class="field-label">Return reason</span><textarea class="textarea" id="senior-return-reason" placeholder="Explain what the agent must address before re-submission" required aria-describedby="senior-return-error"></textarea></label>
+                <label class="field"><span class="field-label">Return reason</span><textarea class="textarea" id="senior-return-reason" maxlength="500" placeholder="Explain what the agent must address before re-submission" required aria-describedby="senior-return-error"></textarea></label>
                 <p class="validation-error" id="senior-return-error" role="alert" hidden>Enter a return reason for the agent.</p>
                 <div class="editor-actions"><button class="button button-secondary" id="cancel-senior-return" type="button">Cancel</button><button class="button button-danger" type="submit">Confirm return to agent</button></div>
               </form>
@@ -1077,7 +1080,7 @@
     </section>
   </main>
 
-  <footer class="footer">Damage Review Copilot prototype · browser-only simulated data · <a href="PRD.pdf">Read the PRD</a> · <a href="https://github.com/ryhanhussain/take-home-task">View project notes</a></footer>
+  <footer class="footer">Damage Review Copilot prototype · browser-only simulated data · <a href="https://docs.google.com/document/d/17BsEC_Aq7gj0rohpaYU-ZVVV8U2NpkNz_uIdmduSflE/edit?usp=sharing">Read the PRD (Google Doc)</a> · <a href="https://github.com/ryhanhussain/take-home-task">View project notes</a></footer>
 
   <dialog class="drawer" id="source-dialog" aria-labelledby="source-dialog-title">
     <header class="dialog-header"><div><p class="page-kicker">Source support</p><h2 id="source-dialog-title">Source</h2></div><button class="dialog-close" type="button" data-close-dialog="source-dialog" aria-label="Close source details">×</button></header>
@@ -1096,7 +1099,7 @@
   <dialog id="manual-dialog" aria-labelledby="manual-dialog-title">
     <form id="manual-form" novalidate>
       <header class="dialog-header"><div><p class="page-kicker">Agent action</p><h2 id="manual-dialog-title">Route to manual review</h2></div><button class="dialog-close" type="button" data-close-dialog="manual-dialog" aria-label="Close manual review form">×</button></header>
-      <div class="dialog-body"><label class="field"><span class="field-label">Routing reason</span><select class="select" id="manual-reason" required aria-describedby="manual-error"><option value="">Select a reason</option><option>Potential hidden or structural damage</option><option>Evidence conflicts with incident description</option><option>Vehicle or damage is outside supported scope</option><option>Draft does not support a safe recommendation</option><option>Other expert review required</option></select></label><label class="field"><span class="field-label">Optional handoff note</span><textarea class="textarea" id="manual-note" placeholder="Add context for the senior adjuster"></textarea></label><p class="validation-error" id="manual-error" role="alert" hidden>Select a routing reason.</p></div>
+      <div class="dialog-body"><label class="field"><span class="field-label">Routing reason</span><select class="select" id="manual-reason" required aria-describedby="manual-error"><option value="">Select a reason</option><option>Potential hidden or structural damage</option><option>Evidence conflicts with incident description</option><option>Vehicle or damage is outside supported scope</option><option>Draft does not support a safe recommendation</option><option>Other expert review required</option></select></label><label class="field"><span class="field-label">Optional handoff note</span><textarea class="textarea" id="manual-note" maxlength="500" placeholder="Add context for the senior adjuster"></textarea></label><p class="validation-error" id="manual-error" role="alert" hidden>Select a routing reason.</p></div>
       <footer class="dialog-actions"><button class="button button-secondary" type="button" data-close-dialog="manual-dialog">Cancel</button><button class="button button-danger" type="submit">Confirm manual review route</button></footer>
     </form>
   </dialog>
@@ -1218,7 +1221,7 @@
         decisionLocked: false,
         sourceTrigger: null,
         dialogTrigger: null,
-        intake: { initialized: false, fixture: "", fileName: "", imageUrl: "", objectUrl: "", arbitrary: false }
+        intake: { initialized: false, fixture: "", fileName: "", imageUrl: "", objectUrl: "", pendingObjectUrl: "", arbitrary: false }
       };
       var screens = Array.prototype.slice.call(document.querySelectorAll("[data-screen]"));
       var toast = document.getElementById("toast");
@@ -1506,10 +1509,12 @@
 
       function clearIntakeImage() {
         if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        if (app.intake.pendingObjectUrl) URL.revokeObjectURL(app.intake.pendingObjectUrl);
         app.intake.fixture = "";
         app.intake.fileName = "";
         app.intake.imageUrl = "";
         app.intake.objectUrl = "";
+        app.intake.pendingObjectUrl = "";
         app.intake.arbitrary = false;
         document.getElementById("damage-input").value = "";
         document.getElementById("upload-preview").hidden = true;
@@ -1537,7 +1542,9 @@
 
       function selectFixture(fixture) {
         if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        if (app.intake.pendingObjectUrl) URL.revokeObjectURL(app.intake.pendingObjectUrl);
         app.intake.objectUrl = "";
+        app.intake.pendingObjectUrl = "";
         app.intake.fixture = fixture;
         app.intake.fileName = fixture === "poor" ? "Sample A · simulated low-quality treatment" : "sample-a-bumper.jpg";
         app.intake.imageUrl = SAMPLE_IMAGE;
@@ -1559,15 +1566,35 @@
           document.getElementById("browse-button").focus();
           return;
         }
-        if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
-        app.intake.objectUrl = URL.createObjectURL(file);
-        app.intake.fixture = "custom";
-        app.intake.fileName = file.name;
-        app.intake.imageUrl = app.intake.objectUrl;
-        app.intake.arbitrary = true;
-        document.querySelectorAll("[data-fixture]").forEach(function (button) { button.setAttribute("aria-pressed", "false"); });
-        document.getElementById("custom-upload-note").hidden = false;
-        displayIntakeImage(app.intake.imageUrl, file.name, false);
+        clearIntakeImage();
+        var objectUrl = URL.createObjectURL(file);
+        var probe = new Image();
+        app.intake.pendingObjectUrl = objectUrl;
+        document.getElementById("gate-copy").textContent = "Checking that the image can be read…";
+        probe.onload = function () {
+          if (app.intake.pendingObjectUrl !== objectUrl) return;
+          app.intake.pendingObjectUrl = "";
+          app.intake.objectUrl = objectUrl;
+          app.intake.fixture = "custom";
+          app.intake.fileName = file.name;
+          app.intake.imageUrl = objectUrl;
+          app.intake.arbitrary = true;
+          document.querySelectorAll("[data-fixture]").forEach(function (button) { button.setAttribute("aria-pressed", "false"); });
+          document.getElementById("custom-upload-note").hidden = false;
+          displayIntakeImage(objectUrl, file.name, false);
+        };
+        probe.onerror = function () {
+          if (app.intake.pendingObjectUrl !== objectUrl) return;
+          app.intake.pendingObjectUrl = "";
+          URL.revokeObjectURL(objectUrl);
+          var error = document.getElementById("upload-error");
+          error.textContent = "This file could not be read as an image. Choose a valid JPEG, PNG, or WebP file.";
+          error.hidden = false;
+          document.getElementById("damage-input").setAttribute("aria-invalid", "true");
+          document.getElementById("gate-copy").textContent = "Add a valid image to continue.";
+          document.getElementById("browse-button").focus();
+        };
+        probe.src = objectUrl;
       }
 
       function updateIntakeGate() {
@@ -1667,7 +1694,7 @@
         badge.textContent = returned ? "Returned by senior" : "Ready for review";
         badge.className = "status-badge " + (returned ? "status-action" : "status-ready");
         document.getElementById("returned-banner").hidden = !returned;
-        document.getElementById("returned-reason").textContent = returned ? (claim.returnReason || "See the audit trail for details.") + " — Adjust the affected findings (reopen, correct, or reject), then re-send the packet." : "";
+        document.getElementById("returned-reason").textContent = returned ? (claim.returnReason || "See the audit trail for details.") + (claim.returnAddressed ? " — Rework recorded; review the packet before re-sending." : " — Reopen and resolve at least one finding before re-sending the packet.") : "";
         document.getElementById("record-claim").textContent = claim.id;
         document.getElementById("record-policy").textContent = claim.policy;
         document.getElementById("record-vehicle").textContent = claim.vehicle;
@@ -1689,9 +1716,10 @@
 
       function renderProgress(claim) {
         var progress = assessmentProgress(claim);
+        var returnNeedsRework = claim.status === "returned" && !claim.returnAddressed;
         var percent = progress.total ? Math.round((progress.resolved / progress.total) * 100) : 0;
         document.getElementById("review-progress-label").textContent = progress.resolved + " of " + progress.total + " findings resolved";
-        document.getElementById("review-progress-status").textContent = progress.complete ? "All resolved — open the handoff packet" : "Decide each finding in turn";
+        document.getElementById("review-progress-status").textContent = returnNeedsRework ? "Senior rework required — reopen and resolve a finding" : (progress.complete ? "All resolved — open the handoff packet" : "Decide each finding in turn");
         document.getElementById("review-progress-fill").style.width = percent + "%";
         document.getElementById("review-progress").setAttribute("aria-valuemax", String(progress.total));
         document.getElementById("review-progress").setAttribute("aria-valuenow", String(progress.resolved));
@@ -1707,8 +1735,8 @@
           button.appendChild(element("span", "step-state " + finding.decision, mark + findingDecisionLabel(finding)));
           rail.appendChild(button);
         });
-        document.getElementById("review-packet").disabled = !progress.complete;
-        document.getElementById("action-progress").textContent = progress.complete ? "All findings decided — packet ready" : (progress.total - progress.resolved) + " finding" + (progress.total - progress.resolved === 1 ? "" : "s") + " left to review";
+        document.getElementById("review-packet").disabled = !progress.complete || returnNeedsRework;
+        document.getElementById("action-progress").textContent = returnNeedsRework ? "Address the senior's return before re-sending" : (progress.complete ? "All findings decided — packet ready" : (progress.total - progress.resolved) + " finding" + (progress.total - progress.resolved === 1 ? "" : "s") + " left to review");
       }
 
       function renderSourceButtons(claim, finding) {
@@ -1933,6 +1961,7 @@
         var after = Object.assign(copyFinding(finding), { decision: decision, reason: finding.reason });
         var action = decision === "confirmed" ? "Finding confirmed" : (decision === "corrected" ? "Correction reconfirmed" : "Finding rejected");
         addAudit(claim, action, finding.component + (finding.reason ? " · Reason: " + finding.reason : ""), { findingId: finding.id, before: before, after: after, reason: finding.reason || "", sourceIds: (finding.sourceIds || []).concat([finding.manualOperationSourceId, finding.manualPriceSourceId].filter(Boolean)) });
+        if (claim.status === "returned") claim.returnAddressed = true;
         saveState();
         var currentIndex = claim.assessment.findings.indexOf(finding);
         var next = nextPendingFinding(claim, currentIndex);
@@ -1943,7 +1972,8 @@
           var progress = assessmentProgress(claim);
           document.getElementById(progress.complete ? "review-packet" : "active-finding-title").focus();
         }, 0);
-        showToast(decision === "confirmed" ? "Confirmed — next unresolved finding loaded." : (decision === "corrected" ? "Correction reconfirmed — next unresolved finding loaded." : "Suggestion rejected and preserved in the trace."));
+        var decisionMessage = decision === "confirmed" ? "Finding confirmed." : (decision === "corrected" ? "Correction reconfirmed." : "Suggestion rejected and preserved in the trace.");
+        showToast(decisionMessage + (next ? " Next unresolved finding loaded." : " All findings are resolved."));
       }
 
       var FINDING_FIELD_IDS = ["edit-component", "edit-severity", "edit-observation", "edit-operation", "edit-evidence", "edit-parts", "edit-hours", "edit-rate", "edit-reason", "edit-operation-source", "edit-price-source"];
@@ -2049,11 +2079,12 @@
         var operationChanged = !existing || values.operation !== existing.operation;
         var priceChanged = !existing || Math.abs(values.parts - existing.parts) > .001 || Math.abs(values.hours - existing.hours) > .001 || Math.abs(values.rate - existing.rate) > .001;
         var hasNonZeroCost = values.parts > 0 || values.hours > 0;
+        var needsPriceSource = existing ? priceChanged : hasNonZeroCost;
         if (operationChanged && !values.operationSource) {
           showFindingValidation("Add repair-operation support for a changed or agent-added operation.", ["edit-operation-source"]);
           return;
         }
-        if (priceChanged && hasNonZeroCost && !values.priceSource) {
+        if (needsPriceSource && !values.priceSource) {
           showFindingValidation("Add price or rate support for changed or agent-added cost inputs.", ["edit-price-source"]);
           return;
         }
@@ -2077,6 +2108,7 @@
         if (values.operationSource) addManualSource(claim, finding, "operation", values.operationSource);
         if (values.priceSource) addManualSource(claim, finding, "price", values.priceSource);
         addAudit(claim, existing ? "Finding corrected and confirmed" : "Agent finding added and confirmed", finding.component + " · Reason: " + values.reason, { findingId: finding.id, before: before, after: copyFinding(finding), reason: values.reason, sourceIds: [finding.manualOperationSourceId, finding.manualPriceSourceId].filter(Boolean) });
+        if (claim.status === "returned") claim.returnAddressed = true;
         app.activeFindingId = finding.id;
         saveState();
         document.getElementById("finding-editor").hidden = true;
@@ -2187,11 +2219,12 @@
         var sent = claim.status === "senior-review";
         var authorized = claim.status === "authorized";
         var returned = claim.status === "returned";
+        var returnNeedsRework = returned && !claim.returnAddressed;
         document.getElementById("handoff-title").textContent = authorized ? "Authorized senior packet" : (sent ? "Senior handoff packet" : "Review senior handoff packet");
         document.getElementById("back-to-findings").textContent = sent || authorized ? "← Back to claim status" : "← Back to findings";
         var send = document.getElementById("send-to-senior");
-        send.disabled = sent || authorized;
-        send.textContent = authorized ? "Repairs authorized" : (sent ? "Packet sent to senior adjuster" : (returned ? "Re-send to senior adjuster" : "Send to senior adjuster"));
+        send.disabled = sent || authorized || returnNeedsRework;
+        send.textContent = authorized ? "Repairs authorized" : (sent ? "Packet sent to senior adjuster" : (returnNeedsRework ? "Rework required before re-send" : (returned ? "Re-send to senior adjuster" : "Send to senior adjuster")));
         document.getElementById("handoff-request").disabled = sent || authorized;
         document.getElementById("handoff-escalate").disabled = sent || authorized;
         document.getElementById("senior-decision-panel").hidden = !(sent || authorized);
@@ -2315,9 +2348,10 @@
         app.timers = [];
         claims.forEach(function (claim) { if (claim.objectUrl) URL.revokeObjectURL(claim.objectUrl); });
         if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        if (app.intake.pendingObjectUrl) URL.revokeObjectURL(app.intake.pendingObjectUrl);
         sessionStorage.removeItem(STORAGE_KEY);
         claims = seedClaims();
-        Object.assign(app, { selectedClaimId: "", activeFindingId: "", queueSort: "submitted-asc", statusFilter: "all", search: "", nextClaimSequence: 4189, pendingQueueUpdates: [], zoom: 1, overlayVisible: false, decisionLocked: false, sourceTrigger: null, dialogTrigger: null, intake: { initialized: false, fixture: "", fileName: "", imageUrl: "", objectUrl: "", arbitrary: false } });
+        Object.assign(app, { selectedClaimId: "", activeFindingId: "", queueSort: "submitted-asc", statusFilter: "all", search: "", nextClaimSequence: 4189, pendingQueueUpdates: [], zoom: 1, overlayVisible: false, decisionLocked: false, sourceTrigger: null, dialogTrigger: null, intake: { initialized: false, fixture: "", fileName: "", imageUrl: "", objectUrl: "", pendingObjectUrl: "", arbitrary: false } });
         document.getElementById("queue-search").value = "";
         document.getElementById("status-filter").value = "all";
         document.getElementById("queue-sort").value = "submitted-asc";
@@ -2467,7 +2501,7 @@
       document.getElementById("handoff-escalate").addEventListener("click", openManualDialog);
       document.getElementById("send-to-senior").addEventListener("click", function () {
         var claim = getClaim(app.selectedClaimId);
-        if (!assessmentProgress(claim).complete || claim.status === "senior-review" || claim.status === "authorized") return;
+        if (!assessmentProgress(claim).complete || claim.status === "senior-review" || claim.status === "authorized" || (claim.status === "returned" && !claim.returnAddressed)) return;
         var resend = claim.status === "returned";
         claim.status = "senior-review";
         claim.estimateState = "reviewed";
@@ -2511,6 +2545,7 @@
         }
         claim.status = "returned";
         claim.returnReason = reason;
+        claim.returnAddressed = false;
         claim.seniorDecision = { decision: "returned", reason: reason, timestamp: nowIso() };
         addAudit(claim, "Packet returned to agent", "Reason: " + reason, { actor: "Senior adjuster" });
         saveState();
@@ -2572,6 +2607,7 @@
       window.addEventListener("popstate", handleHash);
       window.addEventListener("beforeunload", function () {
         if (app.intake.objectUrl) URL.revokeObjectURL(app.intake.objectUrl);
+        if (app.intake.pendingObjectUrl) URL.revokeObjectURL(app.intake.pendingObjectUrl);
         claims.forEach(function (claim) { if (claim.objectUrl) URL.revokeObjectURL(claim.objectUrl); });
       });
 
